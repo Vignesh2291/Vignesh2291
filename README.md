@@ -1,8 +1,8 @@
 - 👋 Hi, I’m @Vignesh2291
 - 👀 I’m interested in ...Data
-- 🌱 I’m currently learning ...Python
-- 💞️ I’m looking to collaborate on ...
-- 📫 How to reach me ...
+- 🌱 I’m currently learning ...Python,SQL,Power BI
+- 💞️ I’m looking to collaborate on ...Data
+- 📫 How to reach me ...LinkedIn
 
 <!---
 Vignesh2291/Vignesh2291 is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
