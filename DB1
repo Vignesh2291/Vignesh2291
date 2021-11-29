@@ -1,0 +1,2705 @@
+import pandas as pd
+import getpass 
+import tkinter as Tk
+import sqlite3
+import datetime as dt
+from ttkwidgets import autocomplete
+import win32gui
+import babel.numbers
+import openpyxl
+import xlsxwriter
+import xlwings as xw
+ 
+from typing import Awaitable
+from os import strerror,startfile,walk
+from tkcalendar import DateEntry
+from ttkwidgets.autocomplete import AutocompleteCombobox, autocompletecombobox
+from tkinter import *
+from tkinter import ttk
+from tkinter.ttk import Combobox, Treeview
+from tkinter import messagebox
+from datetime import datetime
+from tkinter import filedialog as fd
+
+Icon_Image=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\EQ_HD.ico'
+Data_Base_Support=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn\Support.db'
+mypath=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'
+DB_Name = []
+for (dirpath, dirnames, filenames) in walk(mypath):
+    DB_Name.extend(filenames)
+    break
+DB_Name = [val for val in DB_Name if val.endswith(".db")]
+DB_Name.remove("Support.db")
+#print(DB_Name) 
+
+global Login_c,Total_NP_Hours,Lst_Start_Time,A_Access,UserID
+Login_c=0
+Total_NP_Hours=dt.timedelta()
+NPTotalHours=dt.timedelta()
+Lst_Start_Time=0
+
+def WindowCheck():
+    WindowsList = []
+    def winEnumHandler( hwnd, ctx ):
+        if win32gui.IsWindowVisible( hwnd ):
+            WindowsList.append(win32gui.GetWindowText( hwnd ))
+
+    win32gui.EnumWindows( winEnumHandler, None )
+    return WindowsList
+
+def focusNext(widget):
+    widget.tk_focusNext().focus_set()
+    return 'break'
+
+def focusPrev(widget):
+    widget.tk_focusPrev().focus_set()
+    return 'break'
+ 
+
+#---Select Query---
+def SelectQueryfun(query, record,Data_Base):
+    try:
+        conn = sqlite3.connect(Data_Base,timeout=30)
+        c = conn.cursor()
+        c.execute(query, record)
+        data = []
+        for row in c.fetchall():
+            data.append(row)
+        conn.close()
+        return data
+    except:
+        conn.close()
+#---View Query---
+def ViewQueryfun(query,Data_Base):
+    try:
+        conn = sqlite3.connect(Data_Base,timeout=30)
+        c = conn.cursor()
+        c.execute(query)
+        data = []
+        for row in c.fetchall():
+            data.append(row)
+        conn.close()
+        return data
+    except:
+        conn.close()
+#----Insert Q----
+def InsertQ(ColumQ,valQ,Data_Base):
+    try:
+        global Transactions
+        conn = sqlite3.connect(Data_Base,timeout=30)
+        cursor=conn.cursor()
+        cursor.execute(ColumQ,valQ)
+        conn.commit()
+        conn.close()
+    except:
+        conn.close()
+#----Combodropdown1----
+def Combodrop1(Condition2,F_Que,Data_Base):
+    try:
+        conn = sqlite3.connect(Data_Base,timeout=30)
+        cursor = conn.cursor()    
+        cursor.execute(Condition2, (F_Que,))
+        result = []
+        for row in cursor.fetchall():
+            result.append(row[1])
+        conn.close()
+        return result
+    except:
+        conn.close()          
+
+#----Combodropdown----
+def Combodrop(Condition,Data_Base):
+    try:
+        conn = sqlite3.connect(Data_Base,timeout=30)
+        cursor=conn.cursor()
+        cursor.execute(Condition)
+        result = []
+        for row in cursor.fetchall():
+            result.append(row[0])
+        conn.close()
+        return result
+    except:
+        conn.close()
+#---User Details ---
+UserID = getpass.getuser().lower()
+S_Q="select * from TblUser_data WHERE User_ID = (?) "
+S_L=[UserID]
+rows=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+if (len(rows))==0:
+    Access_Offinn=Tk()
+    Access_Offinn.title("Office_Inn Access")
+    Access_Offinn.geometry("400x400") 
+    Access_Offinn.resizable(0,0)
+    Access_Offinn.config(bg="white")
+    Access_Offinn.iconbitmap(Icon_Image)
+    messagebox.showerror("Data Missing","User Details missing in Data table, Reach Innovation team to get access")
+    quit()
+TName1=str()
+for row in rows:
+    U_Name=row[1]
+    T_Name=row[2]
+    U_Access=row[3]
+    A_Access=row[4]
+    
+    com_query1 = ('Select distinct(Team_Name) as class from TblTeam_data')
+    rows=ViewQueryfun(com_query1,Data_Base_Support)
+    Team_list = []
+    for i in rows:
+        Team_list.append(i[0])
+    
+    if T_Name not in Team_list:
+        Data_Base=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn\Other.db'
+    else:
+        # TName1=T_Name
+        # if T_Name=="CEC-UK" or T_Name=="CEC-US":
+        #     T_Name1="Customer Experience Centre"
+        
+        TName=T_Name.replace(" ", "_")
+        Data_Base=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'+'\\'+TName+'.db'
+    #print(Data_Base)
+if U_Access!="Yes":
+    messagebox.showerror("Waring","Access denied. Reach Innovation team to get access")
+    quit()
+
+
+######################################################################################################################################################################################################################################################
+#-------------------------------This is Login--------------------------------------------------------------------------------------------------------------------------------------------------------------
+######################################################################################################################################################################################################################################################
+def login():
+        global Old_Time,U_Name,T_Name,Lst_Start_Time,Total_NP_Hours,Login_c,S_Atmpt,A_Access,UserID
+        
+        Old_Time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        P_Date=dt.datetime.today().strftime('%d-%m-%Y')
+        
+        S_Q="select max(END_TIME) from TblProduction where P_DATE=(?) and USERID=(?)"
+        S_L=[P_Date,UserID]
+        rows=SelectQueryfun(S_Q,S_L,Data_Base)
+        Last_Pro_Endtime=rows[0][0]
+         
+        
+        S_Q1="select max(END_TIME) from TblNon_Production where P_DATE=(?) and USER_ID=(?)"
+        S_L1=[P_Date,UserID]
+        rows1=SelectQueryfun(S_Q1,S_L1,Data_Base)
+        Last_NonPro_Endtime=rows1[0][0]
+        
+        
+        if Last_Pro_Endtime==None:
+            S_Q1="select max(END_TIME) from TblNon_Production where P_DATE=(?) and USER_ID=(?) and ACTIVITY='Login'"
+            S_L1=[P_Date,UserID]
+            rows2=SelectQueryfun(S_Q1,S_L1,Data_Base)
+            Login_Time=rows2[0][0]
+            Lst_Start_Time=Login_Time
+        else:
+            Lst_Start_Time=Last_Pro_Endtime
+
+        S_Q1="select START_TIME from TblNon_Production where P_DATE=(?) and USER_ID=(?)"
+        S_L1=[P_Date,UserID]
+        rows=SelectQueryfun(S_Q1,S_L1,Data_Base)
+        S_T = []
+        for i in rows:
+            S_T.append(i[0])
+         
+        #---Opening app for 2nd time without pro submit
+        S_Atmpt=FALSE
+        if Lst_Start_Time!=None:
+            if Lst_Start_Time in S_T:
+                #print("Second attempt")
+                S_Atmpt=TRUE
+                S_Q1="select max(END_TIME) from TblNon_Production where P_DATE=(?) and USER_ID=(?)  "
+                S_L1=[P_Date,UserID]
+                rows2=SelectQueryfun(S_Q1,S_L1,Data_Base)
+                Dup_Time1=rows2[0][0]
+                Lst_Start_Time1=Dup_Time1
+        
+        #------------------------------------------------------------------------------------
+        #--Already Login Check--
+        S_Q1="SELECT EXISTS(SELECT 1 FROM TblNon_Production WHERE P_DATE=(?) and USER_ID=(?) and ACTIVITY='Login');"
+        S_L1=[P_Date,UserID]
+        rows1=SelectQueryfun(S_Q1,S_L1,Data_Base)
+        Login_c=rows1[0][0]
+        if Login_c==1:
+            Login_Offinn=Tk()
+            Login_Offinn.title("Office_Inn")
+            Login_Offinn.geometry("400x400+750+400") 
+            Login_Offinn.resizable(0,0)
+            Login_Offinn.config(bg="white")
+            Login_Offinn.iconbitmap(Icon_Image)
+
+            def l_close():
+                messagebox.showerror("Warning!!","Submit with Reason to Close this window")
+            
+            
+            Msg_L=Label(Login_Offinn,text="You have already logged-in for the day!! Select reason to proceed further",wraplength=290,fg="#515056",bg="white",bd=0, font=("Calibri", 12,"bold"))
+            Msg_L.place(x=60,y=10)
+
+            Pro_ET_L=Label(Login_Offinn,text="Last Production Time          : "+str(Last_Pro_Endtime),fg="#515056",bg="white",bd=0, font=("Calibri", 9,"bold"))
+            Pro_ET_L.place(x=70,y=70)
+            Non_Pro_ET_L=Label(Login_Offinn,text="Last Non Production Time  : "+str(Last_NonPro_Endtime),fg="#515056",bg="white",bd=0, font=("Calibri", 9,"bold"))
+            Non_Pro_ET_L.place(x=70,y=90)
+            Login_Offinn.protocol("WM_DELETE_WINDOW", l_close)
+
+            def sub_activity_Selection(event):
+                CB_S_Activity.config(state='normal')
+                CB_S_Activity.delete(0,END)
+                CB_S_Activity.config(state='readonly')
+                Condition2="""select * from TblTeam_data where Team_Name = ?"""
+                F_Que=CB_Activity.get()
+                Trans=Combodrop1(Condition2,F_Que,Data_Base_Support)
+                CB_S_Activity.config(completevalues=Trans)
+
+            def Activity_Selection(event):
+                global Meeting,SS_Training,I_Training,Report_Type,W_Flow,Team_N
+
+                CB_S_Activity.config(state='normal')
+                CB_S_Activity.delete(0,END)
+                CB_S_Activity.config(state='disabled')
+                CB_Activity.config(state='normal')
+                CB_Activity.delete(0,END)
+                CB_Activity.config(state='disabled')
+        
+                if CB_Break_Reason.get()=='Meeting':
+                    CB_Activity.config(state='normal')
+                    Condition='select Meeting from Non_Production_Data where Meeting IS NOT NULL'
+                    Meeting=Combodrop(Condition,Data_Base_Support)
+                    CB_Activity.config(completevalues=Meeting)
+                    CB_Activity.config(state='readonly')
+                elif CB_Break_Reason.get()=='Softskill Training':
+                    CB_Activity.config(state='normal')
+                    Condition='select Softskill_Training from Non_Production_Data where Softskill_Training IS NOT NULL'
+                    SS_Training=Combodrop(Condition,Data_Base_Support)
+                    CB_Activity.config(completevalues=SS_Training)
+                    CB_Activity.config(state='readonly')
+                elif CB_Break_Reason.get()=='Induction Training (TrainerOnly)':
+                    CB_Activity.config(state='normal')
+                    Condition='select Induction_Training from Non_Production_Data where Induction_Training IS NOT NULL'
+                    I_Training=Combodrop(Condition,Data_Base_Support)
+                    CB_Activity.config(completevalues=I_Training)
+                    CB_Activity.config(state='readonly')
+                elif CB_Break_Reason.get()=='Reports':
+                    CB_Activity.config(state='normal')
+                    Condition='select Reports from Non_Production_Data where Reports IS NOT NULL'
+                    Report_Type=Combodrop(Condition,Data_Base_Support)
+                    CB_Activity.config(completevalues=Report_Type)
+                    CB_Activity.config(state='readonly')
+                elif CB_Break_Reason.get()=='Workflow':
+                    CB_Activity.config(state='normal')
+                    Condition='select Workflow from Non_Production_Data where Workflow IS NOT NULL '
+                    W_Flow=Combodrop(Condition,Data_Base_Support)
+                    CB_Activity.config(completevalues=W_Flow)
+                    CB_Activity.config(state='readonly')
+                elif CB_Break_Reason.get()=='Process Training' or CB_Break_Reason.get()=='Trainer Support':
+                    CB_Activity.config(state='normal')
+                    Condition1='Select distinct(Team_Name) as class from TblTeam_data'
+                    Team_N=Combodrop(Condition1,Data_Base_Support)
+                    CB_Activity.config(completevalues=Team_N)
+                    CB_Activity.bind("<<ComboboxSelected>>",sub_activity_Selection)
+                    CB_Activity.bind("<FocusOut>",sub_activity_Selection)
+                    CB_Activity.config(state='readonly')
+                else:
+                    CB_Activity.config(state='normal')
+                    CB_Activity.delete(0,END)
+                    CB_Activity.config(state='disabled')
+                    CB_S_Activity.config(state='normal')
+                    CB_S_Activity.delete(0,END)
+                    CB_S_Activity.config(state='disabled')
+
+                if len(CB_Break_Reason.get())>0 :
+                    if CB_Break_Reason.get() not in Break_Reasons:
+                        messagebox.showerror("Incorrect Data", "Enter valid Break Reason")
+                        CB_Break_Reason.focus_set()
+                        CB_Break_Reason.delete(0, END)
+                    else:
+                        pass
+        
+            L_Reason=Label(Login_Offinn,text="Reason",font=('Calibri',9,'bold'),bg='white')
+            L_Reason.place(x=90-20,y=120)
+            Condition='select Break_List from Non_Production_Data where Break_List IS NOT NULL'
+            Break_Reasons=Combodrop(Condition,Data_Base_Support)
+            Break_Reasons1 = 'Continue Production'
+            Break_Reasons += [Break_Reasons1]
+            CB_Break_Reason=AutocompleteCombobox(Login_Offinn,font=('Calibri',10),completevalues=Break_Reasons,width=33)
+            CB_Break_Reason.place(x=90-20,y=140)
+            CB_Break_Reason.bind("<<ComboboxSelected>>",Activity_Selection)
+            CB_Break_Reason.bind("<FocusOut>",Activity_Selection)
+        
+            L_Acivity=Label(Login_Offinn,text="Activity",font=('Calibri',9,'bold'),bg='white')
+            L_Acivity.place(x=90-20,y=170)
+            CB_Activity=AutocompleteCombobox(Login_Offinn,font=('Calibri',10),state="disabled",width=33)
+            CB_Activity.place(x=90-20,y=190)
+            
+            L_S_Activity=Label(Login_Offinn,text="Sub Activity",font=('Calibri',9,'bold'),bg='white')
+            L_S_Activity.place(x=90-20,y=220)
+            CB_S_Activity=AutocompleteCombobox(Login_Offinn,font=('Calibri',10),state="disabled",width=33)
+            CB_S_Activity.place(x=90-20,y=240)
+
+                
+            NPr_L_Comment=Label(Login_Offinn,text="Comments",font=('Calibri',9,'bold'),bg='white')
+            NPr_L_Comment.place(x=90-20,y=270)
+            
+            NPr_E_Comment=Text(Login_Offinn,font=('Calibri',10,'bold'),width=36,height=2,bd=3,highlightthickness=0)
+            NPr_E_Comment.place(x=90-20,y=290)
+            NPr_E_Comment.bind('<Tab>', lambda event: focusNext(NPr_E_Comment))
+            NPr_E_Comment.bind('<Shift-Tab>', lambda event: focusPrev(NPr_E_Comment))
+
+
+            def submit():
+                global S_Atmpt
+                if len(CB_Break_Reason.get())==0:
+                    messagebox.showerror("Warning!!","Select the Reason to Submit")
+                    return False
+                
+
+                global Total_NP_Hours
+                if CB_Break_Reason.get()!='Continue Production':
+                    User_ID=UserID
+                    User_Team=T_Name
+                    Reason=CB_Break_Reason.get()
+                    Activity=CB_Activity.get()
+                    Subactivity=CB_S_Activity.get()
+                    Comments="Reopen|"+NPr_E_Comment.get(1.0, END).strip()
+                    
+                    if S_Atmpt==TRUE:
+                        L_Stime=Lst_Start_Time1
+                    else:
+                        date1 = datetime.strptime(Lst_Start_Time, '%d-%m-%Y %H:%M:%S')
+                        date2 = datetime.strptime(Last_NonPro_Endtime, '%d-%m-%Y %H:%M:%S')
+                        if date1>date2:
+                            L_Stime=Lst_Start_Time
+                        elif date2>date1:
+                            L_Stime=Last_NonPro_Endtime
+
+                    L_Etime=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+                 
+                    NP_Hrs = str(datetime.strptime(L_Etime, '%d-%m-%Y %H:%M:%S')-datetime.strptime(L_Stime, '%d-%m-%Y %H:%M:%S'))
+                    ColumQ = ("INSERT INTO TblNon_Production (P_DATE, USER_ID, USER_TEAM, ACTIVITY,ACTIVITY_TEAM,P_TRANSACTION,COMMENTS,START_TIME,END_TIME,NP_Time) VALUES (?,?,?,?,?,?,?,?,?,?);")
+                    valQ= (P_Date, User_ID,User_Team,Reason,Activity,Subactivity,Comments,L_Stime,L_Etime,str(0)+NP_Hrs)
+                    InsertQ(ColumQ,valQ,Data_Base)
+                    
+                    S_Q2="select NP_Time from TblNon_Production where END_TIME>(?) and USER_ID==(?) and NP_Time<>'NULL' and P_Date=(?)"
+                    S_L2=[Lst_Start_Time,UserID,P_Date]
+                    rows1=SelectQueryfun(S_Q2,S_L2,Data_Base)
+                    T_NP_Hrs=[]
+                    for i in rows1:
+                        T_NP_Hrs.append(i[0])
+                    Total_NP_Hours = dt.timedelta()
+                    for i in T_NP_Hrs:
+                        (H, M, S) = i.split(':')
+                        d = dt.timedelta(hours=int(H), minutes=int(M), seconds=int(S))
+                        Total_NP_Hours += d
+                    Login_Offinn.destroy()
+                else:
+                    #--Total NP Hrs after App Close-------------------------------------------------------
+                    S_Q2="select NP_Time from TblNon_Production where END_TIME>=(?) and USER_ID==(?) and NP_Time<>'NULL' and P_Date=(?)"
+                    S_L2=[Lst_Start_Time,UserID,P_Date]
+                    rows1=SelectQueryfun(S_Q2,S_L2,Data_Base)
+                    T_NP_Hrs=[]
+
+                    for i in rows1:
+                        T_NP_Hrs.append(i[0])
+                    Total_NP_Hours = dt.timedelta()
+                    for i in T_NP_Hrs:
+                        (H, M, S) = i.split(':')
+                        d = dt.timedelta(hours=int(H), minutes=int(M), seconds=int(S))
+                        Total_NP_Hours += d
+                    
+                    Login_Offinn.destroy()
+
+            B_Submit=Button(Login_Offinn,text="Submit",command=submit,font=('Calibri',10,'bold'),cursor="hand2")
+            B_Submit.place(x=170,y=340)  
+
+            Login_Offinn.mainloop()
+        else:
+            User_ID=UserID
+            User_Team=T_Name
+            Activity="Login"
+            L_Stime=Old_Time
+            ColumQ = ("INSERT INTO TblNon_Production (P_DATE, USER_ID, USER_TEAM, ACTIVITY,START_TIME,END_TIME) VALUES (?,?,?,?,?,?);")
+            valQ= (P_Date, User_ID,User_Team,Activity,L_Stime,L_Stime)
+            InsertQ(ColumQ,valQ,Data_Base)
+            
+######################################################################################################################################################################################################################################################
+#------------------------Home Window------------------------
+######################################################################################################################################################################################################################################################
+
+def Main_Function():
+
+    login()
+    Officeinn=Tk()
+    Officeinn.title("Office_Inn 1.5")
+    Officeinn.geometry("1200x600+350+290") 
+    Officeinn.resizable(0,0)
+    Officeinn.config(bg="white")
+    Officeinn.iconbitmap(Icon_Image)
+    frame1=Frame(Officeinn,bg="white",width=850,height=550,relief="solid", borderwidth=0,highlightcolor="white")
+    frame1.pack(fill=BOTH, padx=1,pady=1,expand=True)
+    frame1.propagate(False)
+    today = dt.datetime.today()
+
+    global Transactions
+    Transactions=""
+
+    Label_UserName=Label(frame1,bg='white',font=("Calibri",13,"bold"),borderwidth=0, highlightbackground=None,highlightcolor=None,text='Welcome '+U_Name)
+    Label_UserName.place(relx=0.04,rely=0.04)
+
+    sep = Frame(frame1,bg="white",relief="solid", borderwidth=0,highlightcolor="blue", highlightthickness=2,highlightbackground="#41729c")
+    sep.place(y=56,width=1246,height=1)
+
+    #---Close event------
+    def Main_Window_Close():
+        MsgAnswer = messagebox.askyesnocancel("WARNING", "      Do you want to Close Office Inn? \n\n             Yes - Logout for the day \n           No - Close Application only")
+        if MsgAnswer == True:
+            P_Date=dt.datetime.today().strftime('%d-%m-%Y')
+            User_ID=UserID
+            User_Team=T_Name
+            Activity="Logout"
+            L_Stime=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+            ColumQ = ("INSERT INTO TblNon_Production (P_DATE, USER_ID, USER_TEAM, ACTIVITY,START_TIME,END_TIME) VALUES (?,?,?,?,?,?);")
+            valQ= (P_Date, User_ID,User_Team,Activity,L_Stime,L_Stime)
+            InsertQ(ColumQ,valQ,Data_Base)
+            Officeinn.destroy()
+        elif MsgAnswer==False:
+            Officeinn.destroy()
+
+    def Count_Check(event):
+        
+        if Ent2.get().isdigit() :
+            return True
+        elif Ent2.get() == "":
+            return True
+        elif int(Ent2.get()) <0:
+            messagebox.showerror("Incorrect Data","Enter Positive value")
+            Ent2.focus_set()
+            Ent2.delete(0, END)
+            return False
+        else:
+            messagebox.showerror("Incorrect Data","Enter numeric value")
+            Ent2.focus_set()
+            Ent2.delete(0, END)
+            return False
+
+    #----Count Update----
+    def Count_Update():
+        User_ID=getpass.getuser().lower()
+        P_Date=today.strftime('%d-%m-%Y')
+        S_Q="SELECT Transactions,SUM(case when P_Type = 'Production' then A_Count ELSE 0 end),SUM(case when P_Type = 'QC' then A_Count ELSE 0 end)FROM TblProduction where USERID=(?) and P_Date=(?)and A_STATUS!= (?) GROUP BY Transactions"
+        S_L=[User_ID,P_Date,Status4]
+        rows=SelectQueryfun(S_Q,S_L,Data_Base)
+        for row in rows:
+            Lst3.insert("", END, values=row) 
+        
+    #------------------------Transaction Selection Event------------------------------------------------------------------------------------------------------
+    def Item_select(event):
+        global Transactions
+        Transactions=""
+        selection = event.widget.curselection()
+        if len(selection)==0:
+            Transactions=""
+            return False
+        index = selection[0]
+        Transactions = event.widget.get(index)
+       
+     #------------------------Producation Submit event-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def submit(Sts):
+
+        global Old_Time,Transactions,T_Select,NPTotalHours,Login_c,Total_NP_Hours,Lst_Start_Time
+       
+        T_Select=IntVar()
+        P_Date=StringVar()
+        User_ID=StringVar()
+        User_Team=StringVar()
+        T_Team=StringVar()
+        S_Team_N=str()
+        Type=StringVar()
+        Count=IntVar()
+        Status=StringVar()
+        Comments=StringVar()
+        S_Time=StringVar
+        E_Time=StringVar()
+        P_Time=StringVar()
+                
+        if  cb1.get()=="" :
+            messagebox.showwarning("Data Missing","Select Team name")
+            return False
+
+        if  Transactions=="" :
+            messagebox.showwarning("Data Missing","Select appropriate Transaction to proceed further")
+            return False
+
+        if len(Ent2.get())>0:
+            if  int(Ent2.get())>500 or int(Ent2.get())==1 :
+                messagebox.showerror("Warning","Enter valid Count!")
+                Ent2.delete(0, END)
+                return False
+        
+        end_index = Lst2.index("end")
+        if end_index == 0:
+            messagebox.showinfo("Data Missing","Select Customized Transaction to submit")
+            return False
+
+        P_Date=today.strftime('%d-%m-%Y')
+        User_ID=UserID
+        User_Team=T_Name
+        T_Team=cb1.get()
+
+        
+        S_Q1 = """select * from TblTeam_data where TRANSACTION_N = ? and TEAM_NAME = ? """
+        S_L1= [Transactions,T_Team]
+        rows1=SelectQueryfun(S_Q1,S_L1,Data_Base_Support)
+        S_Team_N1=rows1[0][2]
+        
+        if S_Team_N1==T_Team:
+            S_Team_N=""
+        else:
+            S_Team_N=S_Team_N1
+        
+        Type='Production'
+        
+        if len(Ent2.get())>0:
+            if int(Ent2.get()) <0:
+                messagebox.showerror("Incorrect Data","Enter Positive value")
+                Ent2.focus_set()
+                Ent2.delete(0, END)
+                return False
+        
+        if Ent2.get()=="":
+            Count=1
+        else:
+            Count=Ent2.get()
+        Status=Sts
+
+        Comments=Ent3.get(1.0,END).strip()
+
+        if Login_c==1:
+            S_Time=Lst_Start_Time
+            #P_Time=str('0')+str(Total_NP_Hours)
+        else:
+            S_Time=Old_Time
+            #P_Time=str(NPTotalHours)[-8:]
+            
+        ###### New Entry #########
+        if len(str(NPTotalHours))==7 :
+            NPTotalHours=str("0001-01-01 0")+str(NPTotalHours)
+            
+        if len(str(Total_NP_Hours))==7 :
+             Total_NP_Hours=str("0001-01-01 0")+str(Total_NP_Hours)
+             NPTotalHours=str(NPTotalHours)
+        else:
+            Total_NP_Hours=str(Total_NP_Hours)
+            NPTotalHours=str(NPTotalHours)
+        Total_NP_Hours  = dt.timedelta(hours=int(Total_NP_Hours[11:13]),minutes=int(Total_NP_Hours[14:16]),seconds=int(Total_NP_Hours[17:19]))
+        NPTotalHours  = dt.timedelta(hours=int(NPTotalHours[11:13]),minutes=int(NPTotalHours[14:16]),seconds=int(NPTotalHours[17:19]))
+        P_Time = Total_NP_Hours + NPTotalHours
+        E_Time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        
+        if (int(Count)>1) and (Status=='Cancelled' or Status=='Referred' or Status=='Diarised'):
+            messagebox.showerror("Alert","Enter count, only for Completed transaction")
+            Ent2.delete(0, END)
+            return False
+
+         
+        ColumQ="INSERT INTO TBlProduction (P_DATE,USERID,USER_TEAM,TRANSACTIONS,TRANSACTION_TEAM,Sub_Team_Name,P_TYPE,A_COUNT,A_STATUS,Comments,START_TIME,END_TIME,PAUSE_TIME) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);"
+        ValQ=[P_Date,User_ID,User_Team,Transactions,T_Team,S_Team_N,Type,Count,Status,Comments,S_Time,E_Time,str(0)+str(P_Time)]
+        InsertQ(ColumQ,ValQ,Data_Base)
+        
+        
+        Lst3.delete(*Lst3.get_children())
+        Old_Time=E_Time
+        Ent2.delete(0, END)
+        Ent3.delete(1.0, END)
+        NPTotalHours = datetime.min
+        
+        ###### New Entry #########
+        Total_NP_Hours = datetime.min
+
+        Login_c=0
+        Lst_Start_Time=E_Time
+        Count_Update()
+
+    ######################################################################################################################################################################################################################################################
+    #------------------------Non Producation--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ######################################################################################################################################################################################################################################################
+    #----This is Clock---------- 
+     
+    global running, hours, minutes, seconds,NPTotalHours
+    running = False
+    hours, minutes, seconds = 0, 0, 0
+    NPTotalHours = datetime.min
+
+    def ClockRun(Clockroot):
+        
+        ClockRun.stopwatch_label = Label(Clockroot,text='00:00:00', bg="white", font=('Calibri', 15, 'bold'))
+        ClockRun.stopwatch_label.place(x=280,y=10)
+        
+        def start(stopwatch_label, Initial):
+            global running
+            if not running:
+                update(stopwatch_label)
+                running = True
+        
+        def update(stopwatch_label):
+            global hours, minutes, seconds
+            seconds += 1
+            if seconds == 60:
+                minutes += 1
+                seconds = 0
+            if minutes == 60:
+                hours += 1
+                minutes = 0
+            
+            hours_string = f'{hours}' if hours > 9 else f'0{hours}'
+            minutes_string = f'{minutes}' if minutes > 9 else f'0{minutes}'
+            seconds_string = f'{seconds}' if seconds > 9 else f'0{seconds}'
+            
+            stopwatch_label.config(text=hours_string + ':' + minutes_string + ':' + seconds_string)
+            
+            global update_time
+            update_time = stopwatch_label.after(1000, lambda:update(stopwatch_label))
+            
+        start(ClockRun.stopwatch_label, 'Yes')
+    # --------------NP Call---------- 
+    def Non_Producation():
+
+        NPStartTime = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+
+        NP_Button.config(state='disabled',bg="#98d4e3",font=("Calibri", 11,"bold"),cursor="hand2")
+    
+        def avoid():
+            MsgAnswer = messagebox.askyesno("Exit Non Production", "Are you sure want to close without submitting Non Production details?")
+            if MsgAnswer == True:
+                global hours, minutes, seconds
+                hours, minutes, seconds = 0, 0, 0
+                global running
+                running = False
+                child_w.destroy()
+                Officeinn.focus_force()
+                NP_Button.config(state='normal',bg="#00728F",font=("Calibri", 11,"bold"))
+        
+        def NPSubmit():
+            NPReason=CB_Break_Reason.get()
+            NPActivity=CB_Activity.get()
+            NPSubActivity=CB_S_Activity.get()
+            NPComments=NPr_E_Comment.get(1.0, END).strip()
+            
+            if NPReason == '':
+                messagebox.showerror("Validation","Select Reason!")
+            else:
+                if (NPReason == 'Process Training' or NPReason == 'Trainer Support') and (NPActivity == '' or NPSubActivity==''):
+                    messagebox.showerror("Validation","Select Activity and Sub Activity!")
+                elif (NPReason == 'Meeting' or NPReason == 'Reports'or NPReason == 'Induction Training (TrainerOnly)'or NPReason == 'Softskill Training'or NPReason == 'Workflow') and (NPActivity == ''):
+                    messagebox.showerror("Validation","Select Activity!")
+                else:
+                    global hours, minutes, seconds
+                    hours, minutes, seconds = 0, 0, 0
+                        
+                    global NPTotalHours
+                    EntryDate = datetime.now().strftime('%d-%m-%Y')
+                    NPEndTime = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+                    global running
+                    running = False
+
+                    NP_Hrs = datetime.strptime(NPEndTime, '%d-%m-%Y %H:%M:%S')-datetime.strptime(NPStartTime, '%d-%m-%Y %H:%M:%S')
+                    
+                    NP_Hr=str(NP_Hrs)
+                    NPTotalHours = NPTotalHours + NP_Hrs #(datetime.strptime(NPEndTime, '%d-%m-%Y %H:%M:%S') - datetime.strptime(NPStartTime, '%d-%m-%Y %H:%M:%S'))
+                    ColumQ = ("INSERT INTO TblNon_Production (P_DATE, USER_ID, USER_TEAM, ACTIVITY, ACTIVITY_TEAM, P_TRANSACTION, COMMENTS,START_TIME,END_TIME,NP_Time) VALUES (?,?,?,?,?,?,?,?,?,?);")
+                    valQ= (EntryDate, UserID,T_Name,NPReason,NPActivity,NPSubActivity,NPComments,NPStartTime,NPEndTime,str(0)+NP_Hr)
+                    InsertQ(ColumQ,valQ,Data_Base)
+                    child_w.destroy()
+                    Officeinn.focus_force()
+                    messagebox.showinfo("Submitted","Non Production Details Submitted Successfully!")
+                    NP_Button.config(state='normal',bg="#00728F",font=("Calibri", 11,"bold"),cursor="hand2")
+            
+        child_w= Toplevel(Officeinn)
+        child_w.geometry("400x400+750+410")
+        child_w.resizable(0,0)
+        child_w.title("Non Production")
+        child_w.config(bg='White')
+        child_w.iconbitmap(Icon_Image)
+
+        ClockRun(child_w)
+        
+        child_w.grab_set() 
+        child_w.protocol("WM_DELETE_WINDOW", avoid)
+              
+    # --------------NP Drop Down--------- 
+
+        def sub_activity_Selection(event):
+            CB_S_Activity.config(state='normal')
+            CB_S_Activity.delete(0,END)
+            CB_S_Activity.config(state='readonly')
+            Condition2="""select * from TblTeam_data where Team_Name = ?"""
+            F_Que=CB_Activity.get()
+            Trans=Combodrop1(Condition2,F_Que,Data_Base_Support)
+            CB_S_Activity.config(completevalues=Trans)
+
+        def Activity_Selection(event):
+            global Meeting,SS_Training,I_Training,Report_Type,W_Flow,Team_N
+            CB_S_Activity.config(state='normal')
+            CB_S_Activity.delete(0,END)
+            CB_S_Activity.config(state='disabled')
+            CB_Activity.config(state='normal')
+            CB_Activity.delete(0,END)
+            CB_Activity.config(state='disabled')
+    
+            if CB_Break_Reason.get()=='Meeting':
+                CB_Activity.config(state='normal')
+                Condition='select Meeting from Non_Production_Data where Meeting IS NOT NULL'
+                Meeting=Combodrop(Condition,Data_Base_Support)
+                CB_Activity.config(completevalues=Meeting)
+                CB_Activity.config(state='readonly')
+            elif CB_Break_Reason.get()=='Softskill Training':
+                CB_Activity.config(state='normal')
+                Condition='select Softskill_Training from Non_Production_Data where Softskill_Training IS NOT NULL'
+                SS_Training=Combodrop(Condition,Data_Base_Support)
+                CB_Activity.config(completevalues=SS_Training)
+                CB_Activity.config(state='readonly')
+            elif CB_Break_Reason.get()=='Induction Training (TrainerOnly)':
+                CB_Activity.config(state='normal')
+                Condition='select Induction_Training from Non_Production_Data where Induction_Training IS NOT NULL'
+                I_Training=Combodrop(Condition,Data_Base_Support)
+                CB_Activity.config(completevalues=I_Training)
+                CB_Activity.config(state='readonly')
+            elif CB_Break_Reason.get()=='Reports':
+                CB_Activity.config(state='normal')
+                Condition='select Reports from Non_Production_Data where Reports IS NOT NULL'
+                Report_Type=Combodrop(Condition,Data_Base_Support)
+                CB_Activity.config(completevalues=Report_Type)
+                CB_Activity.config(state='readonly')
+            elif CB_Break_Reason.get()=='Workflow':
+                CB_Activity.config(state='normal')
+                Condition='select Workflow from Non_Production_Data where Workflow IS NOT NULL '
+                W_Flow=Combodrop(Condition,Data_Base_Support)
+                CB_Activity.config(completevalues=W_Flow)
+                CB_Activity.config(state='readonly')
+            elif CB_Break_Reason.get()=='Process Training' or CB_Break_Reason.get()=='Trainer Support':
+                CB_Activity.config(state='normal')
+                Condition1='Select distinct(Team_Name) as class from TblTeam_data'
+                Team_N=Combodrop(Condition1,Data_Base_Support)
+                CB_Activity.config(completevalues=Team_N)
+                CB_Activity.bind("<<ComboboxSelected>>",sub_activity_Selection)
+                CB_Activity.bind("<FocusOut>",sub_activity_Selection)
+                CB_Activity.config(state='readonly')
+            else:
+                CB_Activity.config(state='normal')
+                CB_Activity.delete(0,END)
+                CB_Activity.config(state='disabled')
+                CB_S_Activity.config(state='normal')
+                CB_S_Activity.delete(0,END)
+                CB_S_Activity.config(state='disabled')
+
+            if len(CB_Break_Reason.get())>0 :
+                if CB_Break_Reason.get() not in Break_Reasons:
+                    messagebox.showerror("Incorrect Data", "Enter valid Break Reason")
+                    CB_Break_Reason.focus_set()
+                    CB_Break_Reason.delete(0, END)
+                else:
+                    pass
+    
+        L_Reason=Label(child_w,text="Reason",font=('Calibri',13,'bold'),bg='white')
+        L_Reason.place(x=15,y=25)
+        Condition='select Break_List from Non_Production_Data where Break_List IS NOT NULL'
+        Break_Reasons=Combodrop(Condition,Data_Base_Support)
+        CB_Break_Reason=AutocompleteCombobox(child_w,font=('Calibri',13) ,width=38,completevalues=Break_Reasons,state='readonly')
+        CB_Break_Reason.place(x=15,y=55)
+        CB_Break_Reason.bind("<<ComboboxSelected>>",Activity_Selection)
+        CB_Break_Reason.bind("<FocusOut>",Activity_Selection)
+      
+        L_Acivity=Label(child_w,text="Activity",font=('Calibri',13,'bold'),bg='white')
+        L_Acivity.place(x=15,y=95)
+        CB_Activity=AutocompleteCombobox(child_w,font=('Calibri',13),state="disabled",width=38)
+        CB_Activity.place(x=15,y=125)
+        
+        L_S_Activity=Label(child_w,text="Sub Activity",font=('Calibri',13,'bold'),bg='white')
+        L_S_Activity.place(x=15,y=165)
+        CB_S_Activity=AutocompleteCombobox(child_w,font=('Calibri',13),state="disabled",width=38)
+        CB_S_Activity.place(x=15,y=195)
+
+             
+        NPr_L_Comment=Label(child_w,text="Comments",font=('Calibri',13,'bold'),bg='white')
+        NPr_L_Comment.place(x=15,y=225)
+        
+        NPr_E_Comment=Text(child_w,font=('Calibri',13,'bold'),width=40,height=2,bd=3,highlightthickness=0)
+        NPr_E_Comment.place(x=15,y=255)
+        NPr_E_Comment.bind('<Tab>', lambda event: focusNext(NPr_E_Comment))
+        NPr_E_Comment.bind('<Shift-Tab>', lambda event: focusPrev(NPr_E_Comment))
+
+        
+        BT_Mainwin=Button(child_w,text='Submit',bg="#00728F",fg='white',font=("Calibri",12,'bold'),borderwidth=3,command=NPSubmit,cursor="hand2")
+        BT_Mainwin.place(x=175,y=320)
+    #------------------------Team Combo box ------------------------
+    com_query1 = ('Select distinct(Team_Name) as class from TblTeam_data')
+    rows=ViewQueryfun(com_query1,Data_Base_Support)
+    TeamName = []
+    for i in rows:
+        TeamName.append(i[0])
+    #------------------------Team Combo box to Transaction Listbox ------------------------
+
+    def comb1_getselet(e):
+        Lst1.delete(0,END) 
+        Lst2.delete(0,END)   
+        com_val1 = cb1.get()
+        S_Q = "select * from TblTeam_data where Team_Name = (?)"
+        S_L=[com_val1]
+        records=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+        data=[]
+        for row in records:        
+            data.append(row[1])
+        for item in data:
+            Lst1.insert(END,item)
+            
+    #------------------------Team Combo box1 to Client Name ------------------------   
+        if com_val1 == "Pensions":
+            lb3.place(x=400,y=115-30)
+            cb2.place(x=400,y=145-30,width=260)
+            clients=["Aviva", "SLOC", "Generali", "Unum", "Hodgelife", "Omni Life"]
+            cb2.config(completevalues=clients)
+        else:
+            lb3.place_forget()
+            cb2.place_forget()
+
+        #---Team & Client name check-----
+        if len(cb1.get())>0 :
+            if cb1.get() not in TeamName:
+                messagebox.showerror("Incorrect Team Name", "Enter valid Team name")
+                cb1.focus_set()
+                cb1.delete(0, END)
+            else:
+                pass
+    def clientcheck(event):   
+        clients=["Aviva", "SLOC", "Generali", "Unum", "Hodgelife", "Omni Life"]
+        if len(cb2.get())>0:
+            if cb2.get() not in clients:
+                messagebox.showerror("Incorrect Client Name", "Enter valid Client name")
+                cb2.focus_set()
+                cb2.delete(0, END)
+            else:
+                pass
+
+    #------------------------From Transaction Listbox to Cust Transaction ------------------------ 
+    result = StringVar()
+    def Selected_listbox(event):
+        global Transactions
+        Transactions=""
+        selection = event.widget.curselection()
+        if len(selection)==0:
+            return False
+        index = selection[0]
+        value = event.widget.get(index)
+        result.set(value)
+        list_val1 = [Lst1.get(ANCHOR)]   
+        for rw in list_val1:
+            Lst2.insert(END,rw)
+            Lst1.delete(ANCHOR)
+            
+    #------------------------From Cust Transaction to Transaction Listbox------------------------ 
+    def Dselect_listbox(event):
+        global T_Select,Transactions
+        Transactions=""
+        selection = event.widget.curselection()
+        T_Select=len(selection)
+        
+        if len(selection)==0:
+            return False
+
+        index = selection[0]
+        value = event.widget.get(index)
+        result.set(value)    
+        list_val2 = [Lst2.get(ANCHOR)]
+        for rwret in list_val2:
+            Lst1.insert(END,rwret)
+            Lst2.delete(ANCHOR)
+
+    lb2 = Label(frame1,text="Team Name",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+    lb2.place(x=50,y=115-30)
+    cb1 = AutocompleteCombobox(frame1 ,font=("Calibri",12),foreground="#515056",completevalues=TeamName)
+    cb1.place(x=50,y=145-30,width=260)
+    cb1.bind("<<ComboboxSelected>>",comb1_getselet)
+    cb1.bind("<FocusOut>",comb1_getselet)
+
+    lb3 = Label(frame1,text="Client Name",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+    cb2 = AutocompleteCombobox(frame1,completevalues=[" "],font=("Calibri",12))
+    cb2.bind("<<ComboboxSelected>>",clientcheck)
+    cb2.bind("<FocusOut>",clientcheck)
+    
+    lb4 = Label(frame1,text="Transaction",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+    lb4.place(x=50,y=180-30)
+
+    Lst1 = Listbox(frame1,  fg="#515056",bg="white",width=30+3,height=13, bd=0, font=("Calibri", 12),relief="solid", highlightcolor="red", highlightthickness=1,highlightbackground="#41729c",activestyle='none' )
+    Lst1.place(x=50,y=210-30)
+    vsb = ttk.Scrollbar(frame1, orient="vertical", command=Lst1.yview)
+    vsb.place(x=303-5, y=212-31, height=285-25)
+    Lst1.configure(yscrollcommand=vsb.set)
+    Lst1.bind("<Double-1>",Selected_listbox)
+
+    lb5 = Label(frame1,text="Customized Transaction",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+    lb5.place(x=400,y=180-30)
+    Lst2 = Listbox(frame1,fg="#515056",bg="white",width=30+3,height=13, bd=0, font=("Calibri", 12),relief="solid", highlightcolor="red", highlightthickness=1,highlightbackground="#41729c",activestyle='none')
+    Lst2.place(x=400,y=210-30)
+    vsb = ttk.Scrollbar(frame1, orient="vertical", command=Lst2.yview)
+    vsb.place(x=653-5, y=212-31, height=285-25)
+    Lst2.configure(yscrollcommand=vsb.set)
+    Lst2.bind("<Double-1>",Dselect_listbox)
+    Lst2.bind("<<ListboxSelect>>",Item_select)
+
+    Ent2 = Entry(frame1, width=9, bg="white",font=("Calibri",13,"bold"),highlightbackground=None,highlightcolor=None,justify='center')
+    Ent2.place(x=725,y=175-30)
+    Ent2.bind('<FocusOut>',Count_Check)
+
+    lb8 = Label(frame1,text="Comments",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+    lb8.place(x=50,y=505-30)
+    Ent3 = Text(frame1, width=22, bg="white",font=("Calibri",11),highlightbackground=None,highlightcolor=None)
+    Ent3.place(x=50,y=530-30,width=272,height=55)
+    Ent3.bind('<Tab>', lambda event: focusNext(Ent3))
+    Ent3.bind('<Shift-Tab>', lambda event: focusPrev(Ent3))
+
+    Status1='Completed'
+    But5 = Button(frame1,text="Completed",width=10,height=2,bg="#00728F",foreground="white", font=("Calibri", 10,"bold"),borderwidth=3,command=lambda:submit(Status1),cursor="hand2")
+    But5.place(x=725,y=225-30)
+    Status2='Cancelled'
+
+    But6 = Button(frame1,text="Cancelled",width=10,height=2,bg="#58c4e0",foreground="Black", font=("Calibri", 10,"bold"),borderwidth=3,command=lambda:submit(Status2),cursor="hand2")
+    But6.place(x=725,y=300-30)
+    Status3='Referred'
+    But7 = Button(frame1,text="Referred",width=10,height=2,bg="#00728F",foreground="white", font=("Calibri", 10,"bold"),borderwidth=3,command=lambda:submit(Status3),cursor="hand2")
+    But7.place(x=725,y=375-30)
+    Status4='Diarised'
+    But8 = Button(frame1,text="Diarised",width=10,height=2,bg="#58c4e0",foreground="Black", font=("Calibri", 10,"bold"),borderwidth=3,command=lambda:submit(Status4),cursor="hand2")
+    But8.place(x=725,y=450-30)
+
+    lb6 = Label(frame1,text="Production Summary",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+    lb6.place(x=850,y=115-30)
+
+    Lst3=Treeview(frame1,columns=(1,2,3),show='headings',height = 17, selectmode = "extended")
+    Lst3.column("# 1",anchor=W, stretch=NO,width=200 )
+    Lst3.heading(1, text="Transaction",anchor=W)
+    Lst3.column("# 2",anchor=CENTER, stretch=NO, width=40)
+    Lst3.heading(2, text="Prod.",anchor=W)
+    Lst3.column("# 3",anchor=CENTER, stretch=NO, width=60)
+    Lst3.heading(3, text="QC",anchor=CENTER)
+
+    Lst3.place(x=850,y=145-30)
+    style = ttk.Style()
+    style.theme_use("vista")
+    style.configure('Treeview.Heading',background='#9e9d9d',foreground='Black',font=("Calibri", 11, "bold"))
+    vsb = ttk.Scrollbar(frame1, orient="vertical", command=Lst3.yview)
+    vsb.place(x=1105+30 , y=147-30, height=363)
+    Lst3.configure(yscrollcommand=vsb.set)
+    
+    #----Copy Rites----
+    lb10 = Label(frame1,text="© EQ Innovation-India|2021",fg="#9f9ea3",bg="white",bd=0, font=("Calibri", 10,"bold"),wraplength=730)
+    lb10.place(x=1025,y=575)
+    Count_Update()
+    
+    
+
+    ######################################################################################################################################################################################################################################################
+    #------------------------QC Window-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ######################################################################################################################################################################################################################################################
+    def Qc_Page():
+        Quality_Button.config(state='disabled',bg="#98d4e3",font=("Calibri", 11,"bold"),cursor="hand2")
+        QC_Frame=Frame(frame1,bg='white',width=1210,height=545,borderwidth=1)
+        QC_Frame.place(x=1,y=58)
+        global Old_Time
+
+        #---Process Date-----------------------------------------------------------------------------------------------------------------------------
+        QC_L_WIT_Date=Label(QC_Frame,text=" WIT Processed Date",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_WIT_Date.place(x=75,y=10+5)
+        QC_T_WIT_Date=DateEntry(QC_Frame, background= "black", foreground= "white",bd=2,font=('Calibri',12),date_pattern='dd-mm-yyyy')
+        QC_T_WIT_Date.place(x=75,y=40,width=200, height=25)
+        today = dt.datetime.today()
+        offset = max(1, (today.weekday() + 6) % 7 - 3)
+        timedelta = dt.timedelta(offset)
+        most_recent = today - timedelta
+        P_Date=most_recent.strftime('%d-%m-%Y')
+        
+        QC_T_WIT_Date._set_text(P_Date)
+        
+        #---Team Name-----------------------------------------------------------------------------------------------------------------------------
+        def QC_C_Teamnamecheck(event):
+            
+            if len(QC_C_Teamname.get())>0 :
+                if QC_C_Teamname.get() not in TeamName:
+                    messagebox.showerror("Incorrect Team Name", "Enter valid Team name")
+                    QC_C_Teamname.focus_set()
+                    QC_C_Teamname.delete(0, END)
+                else:
+                    pass
+
+                if QC_C_Teamname.get()=="CEC-UK" or QC_C_Teamname.get()=="EQ Pay Matching" or QC_C_Teamname.get()=="ProSearch" or QC_C_Teamname.get()=="EQ Global" or QC_C_Teamname.get()=="Shared Support Services":
+                    messagebox.showerror("Warning", "No QC access for the selected team")
+                    QC_C_Teamname.focus_set()
+                    QC_C_Teamname.delete(0, END)
+                else:
+                    pass
+                
+                if QC_C_Teamname.get()=="Employee Services":
+                    QC_E_SubTeam.config(state='readonly')
+                else:
+                    QC_E_SubTeam.config(state='normal')
+                    QC_E_SubTeam.delete(0, END)
+                    QC_E_SubTeam.config(state='disabled')
+
+                T_Name = QC_C_Teamname.get()
+                
+                S_Q = """select * from TblTeam_data where Team_Name = (?)"""
+                S_L=[T_Name]
+                rows1=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+                Trans_list_QC = []
+                for i in rows1:
+                    Trans_list_QC.append(i[1])
+                QC_C_Transaction.delete(0, END)
+                QC_C_Transaction.config(completevalues=Trans_list_QC)
+
+            if len(QC_C_Teamname.get())==0 :
+                QC_C_Transaction.delete(0, END)
+                QC_C_Transaction.config(completevalues='')
+                QC_E_SubTeam.config(state='normal')
+                QC_E_SubTeam.delete(0, END)
+                QC_E_SubTeam.config(state='disabled')
+            else:
+                pass
+
+        QC_L_Teamname = Label(QC_Frame,text="Team Name",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_Teamname.place(x=280+70,y=10+5)
+        QC_C_Teamname = AutocompleteCombobox(QC_Frame ,font=("Calibri",12),foreground="#515056",completevalues=TeamName)
+        QC_C_Teamname.place(x=280+70,y=40,width=200)
+        QC_C_Teamname.bind("<FocusOut>",QC_C_Teamnamecheck)
+
+        #---Transaction Name---------------------------------------------------------------------------------------------------------------------
+        def Trans_Update(Event):
+            global S_Team_N
+            
+                
+            T_Name=QC_C_Teamname.get()
+            Trans_Name = QC_C_Transaction.get()
+            S_Q = "select * from TblTeam_data where TRANSACTION_N = ? and TEAM_NAME = ? "
+            S_L=[Trans_Name,T_Name]
+            rows1=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+            S_Team_N=str()
+            for i in rows1:
+                S_Team_N=i[2]
+
+            if S_Team_N==T_Name:
+                S_Team_N1=""
+            else:
+                S_Team_N1=S_Team_N
+            
+            QC_E_SubTeam.config(state='normal')
+            QC_E_SubTeam.delete(0, END)
+            QC_E_SubTeam.insert(0,S_Team_N1)
+            QC_E_SubTeam.config(state='disable')
+
+            QC_C_ErrorCode.config(state='Normal')
+            S_Q="select * from TblErrorCode where Sub_Team_Name = ?"
+            S_L=[S_Team_N]
+            rows=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+            result = []
+            for i in rows:
+                result.append(i[2])
+            QC_C_ErrorCode.delete(0, END)
+            QC_C_ErrorCode.config(completevalues=result)
+
+            if QC_C_Completed_Status.get()!='No':
+                QC_C_ErrorCode.config(state='disabled')
+            else:
+                pass
+
+            QC_T_Error_Des.config(state='normal')
+            QC_T_Error_Des.delete(1.0, END)
+            QC_T_Error_Des.config(state='disabled')
+            QC_T_E_RiskRate.config(state='normal')
+            QC_T_E_RiskRate.delete(1.0, END)
+            QC_T_E_RiskRate.config(state='disabled')
+        
+        
+        QC_L_Transaction = Label(QC_Frame,text="Transaction",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_Transaction.place(x=610+20,y=10+5)
+        QC_C_Transaction = AutocompleteCombobox(QC_Frame ,font=("Calibri",12),foreground="#515056")
+        QC_C_Transaction.place(x=610+20,y=40,width=200)
+        QC_C_Transaction.bind("<<ComboboxSelected>>",Trans_Update)
+        QC_C_Transaction.bind("<FocusOut>",Trans_Update)
+
+        #---Sub_Team Name--------------------------------------------------------------------------------------------------------------------------
+        QC_L_SubTeam = Label(QC_Frame,text="Sub_Team Name",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_SubTeam.place(x=845+70,y=10+5)
+        QC_E_SubTeam = Entry(QC_Frame,font=("Calibri",12),state='disabled',foreground="#515056")
+        QC_E_SubTeam.place(x=845+70,y=40,width=200)
+         
+
+        #---WIT Number---------------------------------------------------------------------------------------------------------------------------
+        #def Count_Check_WIT(event):
+            #Len_Wit=len(QC_C_WIT_No.get())
+
+            # if Len_Wit!=0 and (Len_Wit<8 or Len_Wit>12):
+            #     messagebox.showerror("Incorrect Data","Enter Correct WIT Number")
+            #     QC_C_WIT_No.focus_set()
+            #     QC_C_WIT_No.delete(0, END)
+            # else:
+            #     pass
+
+            # if QC_C_WIT_No.get().isdigit():
+            #     return True
+            # elif QC_C_WIT_No.get() == "":
+            #     return True
+            # else:
+            #     messagebox.showerror("Incorrect Data","Enter numeric value")
+            #     QC_C_WIT_No.focus_set()
+            #     QC_C_WIT_No.delete(0, END)
+            #     return False
+
+        QC_L_WIT_No = Label(QC_Frame,text="WIT Number/Other",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_WIT_No.place(x=75,y=105)
+        QC_C_WIT_No = Entry(QC_Frame, width=25, bg="white",font=("Calibri",12),highlightbackground=None,highlightcolor=None ,foreground="#515056")
+        QC_C_WIT_No.place(x=75,y=130)
+        
+        #---QC Count Name--------------------------------------------------------------------------------------------------------------------------
+        QC_E_Count = Entry(QC_Frame,font=("Calibri",11,"bold"),foreground="#515056",justify='center',bg="#E0E3E5")
+        QC_E_Count.place(x=240,y=102,width=40)
+        QC_E_Count.insert(0,1)
+
+        #---User Name & ID---------------------------------------------------------------------------------------------------------------------------
+
+        com_query2 = ('Select * from TblUser_data')
+        U_ID_S=ViewQueryfun(com_query2,Data_Base_Support)
+        U_List = []
+        for i in U_ID_S:
+            U_List.append(i[0]+"-"+i[1])
+        
+        def QC_UIDcheck(event):   
+            if len(QC_C_UserID.get())>0:
+                if QC_C_UserID.get() not in U_List:
+                    messagebox.showerror("Incorrect User ID", "Enter valid User ID")
+                    QC_C_UserID.focus_set()
+                    QC_C_UserID.delete(0, END)
+                else:
+                    pass
+        
+        QC_L_UserID = Label(QC_Frame,text="User ID",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_UserID.place(x=280+70,y=105)
+        U_List.remove(UserID+'-'+U_Name)
+        QC_C_UserID = AutocompleteCombobox(QC_Frame ,font=("Calibri",12),completevalues=U_List,foreground="#515056")
+        QC_C_UserID.place(x=280+70,y=130,width=200)
+        QC_C_UserID.bind("<<ComboboxSelected>>",QC_UIDcheck)
+        QC_C_UserID.bind("<FocusOut>",QC_UIDcheck)
+
+        #---Skill Level---------------------------------------------------------------------------------------------------------------------
+        com_query3 = ('Select * from TblSkillLevel')
+        S_Level=ViewQueryfun(com_query3,Data_Base_Support)
+        Skill_Level = []
+        for i in S_Level:
+            Skill_Level.append(i[0])
+        
+        def QC_Skillcheck(event):   
+            if len(QC_C_S_Level.get())>0:
+                if QC_C_S_Level.get() not in Skill_Level:
+                    messagebox.showerror("Incorrect Skill Level", "Enter valid Skill Level")
+                    QC_C_S_Level.focus_set()
+                    QC_C_S_Level.delete(0, END)
+                else:
+                    pass
+        QC_L_S_Level = Label(QC_Frame,text="Skill Level",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_S_Level.place(x=610+20,y=105)
+        QC_C_S_Level = AutocompleteCombobox(QC_Frame ,font=("Calibri",12),foreground="#515056",completevalues=Skill_Level)
+        QC_C_S_Level.place(x=610+20,y=130,width=200)
+        QC_C_S_Level.bind("<<ComboboxSelected>>",QC_Skillcheck)
+        QC_C_S_Level.bind("<FocusOut>",QC_Skillcheck)
+        #---Currency---------------------------------------------------------------------------------------------------------------------------
+        Currency=['$','£','€']
+        QC_C_Currency = AutocompleteCombobox(QC_Frame ,font=("Calibri",12),foreground="#515056",completevalues=Currency,state='readonly')
+        QC_C_Currency.place(x=845+238,y=100,width=35)
+        QC_C_Currency.config(state='normal')
+        QC_C_Currency.insert(0,'£')
+        QC_C_Currency.config(state='readonly')
+
+        #---Value---------------------------------------------------------------------------------------------------------------------------
+        QC_L_Value_Note = Label(QC_Frame,text="Value",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_Value_Note.place(x=845+70,y=105)
+        QC_C_Value_Note = Entry(QC_Frame, width=25, bg="white",font=("Calibri",12),highlightbackground=None,highlightcolor=None, foreground="#515056")
+        QC_C_Value_Note.place(x=845+70,y=130)
+        QC_C_Value_Note.insert(0,'0.0')
+        
+        #---Completed Status---------------------------------------------------------------------------------------------------------------------
+        def Sts_Check(event):
+            global S_Team_N
+            if len(QC_C_Completed_Status.get())>0:
+                C_Status=['Yes','No','Advisory']
+                if QC_C_Completed_Status.get() not in C_Status:
+                    messagebox.showerror("ALERT", "Enter valid Error Status")
+                    QC_C_Completed_Status.focus_set()
+                    QC_C_Completed_Status.delete(0, END)
+                else:
+                    pass
+
+            if QC_C_Completed_Status.get()=="No" :
+                QC_C_ErrorCode.config(state='Normal')
+                S_Q="""select * from TblErrorCode where Sub_Team_Name = ?"""
+                S_L=[S_Team_N]
+                rows=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+                result = []
+                for i in rows:
+                    result.append(i[2])
+                QC_C_ErrorCode.delete(0, END)
+                QC_C_ErrorCode.config(completevalues=result)
+            else:
+                QC_C_ErrorCode.config(state='normal')
+                QC_C_ErrorCode.delete(0, END)
+                QC_C_ErrorCode.config(state='disabled')
+                QC_T_Error_Des.config(state='normal')
+                QC_T_Error_Des.delete(1.0, END)
+                QC_T_Error_Des.config(state='disabled')
+                QC_T_E_RiskRate.config(state='normal')
+                QC_T_E_RiskRate.delete(1.0, END)
+                QC_T_E_RiskRate.config(state='disabled') 
+            
+            if QC_C_Completed_Status.get()=="Advisory" or QC_C_Completed_Status.get()=="No":
+                QC_T_Comments.config(state='normal',bg ='white')
+            else:
+                QC_T_Comments.config(state='normal')
+                QC_T_Comments.delete(1.0, END)
+                QC_T_Comments.config(state='disabled',bg='#f2f2f2')
+            
+        QC_L_Completed_Status = Label(QC_Frame,text="Completed Correctly?",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_Completed_Status.place(x=75,y=195)
+        C_Status=['Yes','No','Advisory']
+        QC_C_Completed_Status = AutocompleteCombobox(QC_Frame ,font=("Calibri",12),completevalues=C_Status,foreground="#515056")
+        QC_C_Completed_Status.place(x=75,y=220,width=200)
+        QC_C_Completed_Status.insert(0, 'Yes')
+        QC_C_Completed_Status.bind('<FocusOut>',Sts_Check)
+        QC_C_Completed_Status.bind('<<ComboboxSelected>>',Sts_Check)
+
+        #---Error Code---------------------------------------------------------------------------------------------------------------------
+        def QC_ECodecheck(event): 
+            global S_Team_N
+            S_Q="select Error_Code from TblErrorCode where Sub_Team_Name = (?)"
+            S_L=[S_Team_N]
+            rows=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+            result3=[]
+            for i in rows:
+                 result3.append(i[0])
+              
+            if len(QC_C_ErrorCode.get())>0:
+                if QC_C_ErrorCode.get() not in result3:
+                    messagebox.showerror("Incorrect Error Code", "Enter valid Error Code")
+                    QC_C_ErrorCode.focus_set()
+                    QC_C_ErrorCode.delete(0, END)
+                else:
+                    pass
+
+            ErrorCode=QC_C_ErrorCode.get()
+            S_Q="""select * from TblErrorCode where Sub_Team_Name = (?) and Error_Code = (?) """
+            S_L=[S_Team_N, ErrorCode]
+            rows=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+            for row in rows:
+                E_Des=row[3]
+                E_Risk=row[4]
+                QC_T_Error_Des.config(state='normal')
+                QC_T_Error_Des.delete(1.0, END)
+                QC_T_Error_Des.insert(END,E_Des)
+                QC_T_Error_Des.config(state='disabled')
+                QC_T_E_RiskRate.config(state='normal')
+                QC_T_E_RiskRate.delete(1.0, END)
+                QC_T_E_RiskRate.insert(END,E_Risk)
+                QC_T_E_RiskRate.config(state='disabled')
+        
+        def Error_Report(event):
+            conn = sqlite3.connect(Data_Base_Support)
+            query1 = "SELECT * FROM TblErrorCode"
+            queries = [query1]
+             
+            for q in queries:
+                df = pd.read_sql_query(q, conn)
+            conn.close()
+            messagebox.showinfo('Completed','Error Report Created!')
+           
+            xw.view(df, table=False)
+            
+        QC_L_ErrorCode = Label(QC_Frame,text="Error Code",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"),cursor="hand2")
+        QC_L_ErrorCode.place(x=280+70,y=195)
+        QC_C_ErrorCode = AutocompleteCombobox(QC_Frame ,font=("Calibri",12),foreground="#515056",state='disabled')
+        QC_C_ErrorCode.place(x=280+70,y=220,width=200)
+        QC_C_ErrorCode.bind('<FocusOut>',QC_ECodecheck)
+        QC_C_ErrorCode.bind('<<ComboboxSelected>>',QC_ECodecheck)
+        QC_L_ErrorCode.bind("<Double-Button>",Error_Report)
+        
+
+        #---Error Code Des---------------------------------------------------------------------------------------------------------------------
+        QC_L_Error_Des = Label(QC_Frame,text="Error Description",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_Error_Des.place(x=610+20,y=195)
+        QC_T_Error_Des = Text(QC_Frame, width=22, bg="#f2f2f2",font=("Calibri",11),highlightbackground=None,highlightcolor=None,foreground="#515056" ,state='disabled',wrap="word")
+        QC_T_Error_Des.place(x=610+20,y=220,width=200,height=55)
+        QC_T_Error_Des.bind('<Tab>', lambda event: focusNext(QC_T_Error_Des))
+        QC_T_Error_Des.bind('<Shift-Tab>', lambda event: focusPrev(QC_T_Error_Des))
+        
+        #---Error Code  Risk Level---------------------------------------------------------------------------------------------------------------------------
+        QC_L_E_RiskRate = Label(QC_Frame,text="Error Risk Rating",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_E_RiskRate.place(x=845+70,y=195)
+        QC_T_E_RiskRate = Text(QC_Frame, width=22, bg="#f2f2f2",font=("Calibri",11),highlightbackground=None,highlightcolor=None,foreground="#515056",state='disabled',wrap="word")
+        QC_T_E_RiskRate.place(x=845+70,y=220,width=200,height=35)
+        QC_T_E_RiskRate.bind('<Tab>', lambda event: focusNext(QC_T_E_RiskRate))
+        QC_T_E_RiskRate.bind('<Shift-Tab>', lambda event: focusPrev(QC_T_E_RiskRate))
+
+        #---Comments---------------------------------------------------------------------------------------------------------------------
+        QC_L_Comments = Label(QC_Frame,text="Comments",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        QC_L_Comments.place(x=75,y=285)
+        QC_T_Comments = Text(QC_Frame, width=22, bg="#f2f2f2",font=("Calibri",12),highlightbackground=None,highlightcolor=None,foreground="#515056",state='disabled')
+        QC_T_Comments.place(x=75,y=310,width=480,height=55)
+        QC_T_Comments.bind('<Tab>', lambda event: focusNext(QC_T_Comments))
+        QC_T_Comments.bind('<Shift-Tab>', lambda event: focusPrev(QC_T_Comments))
+        
+         
+        #---Home Screen--------------------------------------------------------------------------------------------------------------------------
+        def Home_P(event):
+            Label_UserName.focus_set()
+            QC_Frame.destroy()
+        Label_UserName.bind("<Double-Button>",Home_P)
+        
+        #----Copy Rites----
+        lb10 = Label(frame1,text="© EQ Innovation-India|2021",fg="#9f9ea3",bg="white",bd=0, font=("Calibri", 10,"bold"),wraplength=730)
+        lb10.place(x=1025,y=575)
+        Count_Update()
+
+        #---QC Submit window--------------------------------------------------------------------------------------------------------------------------
+        
+        def QC_Submit():
+
+        #---Producation Table Submit----    
+            global Old_Time,NPTotalHours,Login_c,Total_NP_Hours,Lst_Start_Time
+            
+            
+            if QC_T_WIT_Date.get()>today.strftime('%d-%m-%Y'):
+                messagebox.showwarning("WARNING","No future date is WIT Processed Date")
+                QC_T_WIT_Date.focus()
+                return False
+            
+            if len(QC_C_Teamname.get())>0 :
+                if QC_C_Teamname.get() not in TeamName:
+                    messagebox.showerror("Incorrect Team Name", "Enter valid Team name")
+                    QC_C_Teamname.focus_set()
+                    QC_C_Teamname.delete(0, END)
+                else:
+                    pass
+
+                if QC_C_Teamname.get()=="CEC-UK" or QC_C_Teamname.get()=="EQ Pay Matching" or QC_C_Teamname.get()=="ProSearch" or QC_C_Teamname.get()=="EQ Global" or QC_C_Teamname.get()=="Shared Support Services":
+                    messagebox.showerror("Warning", "No QC access for the selected team")
+                    QC_C_Teamname.focus_set()
+                    QC_C_Teamname.delete(0, END)
+                else:
+                    pass
+                
+            
+
+            P_Date=StringVar()
+            User_ID=StringVar()
+            User_Team=StringVar()
+            T_Team=StringVar()
+            Trans = StringVar()
+            QC_Count=IntVar()
+            A_STATUS=StringVar()
+            Comments=StringVar()
+            QC_S_Time=StringVar
+            QC_E_Time=StringVar()
+            P_Time=StringVar()
+            Uni_ID=StringVar()
+
+
+            P_Date=today.strftime('%d-%m-%Y')
+            User_ID=UserID
+            User_Team=T_Name
+            T_Team=QC_C_Teamname.get()
+            Trans=QC_C_Transaction.get()
+            Sub_Team_Name=QC_E_SubTeam.get()
+            P_TYPE='QC'
+            A_STATUS='Completed'
+            QC_Count=QC_E_Count.get()
+            Comments=QC_T_Comments.get(1.0,END).strip()
+            if Login_c==1:
+                QC_S_Time=str(Lst_Start_Time)
+            else:
+                QC_S_Time=Old_Time
+                
+            ###### New Entry #########
+            if len(str(NPTotalHours))==7 :
+                NPTotalHours=str("0001-01-01 0")+str(NPTotalHours)
+                
+            if len(str(Total_NP_Hours))==7 :
+                Total_NP_Hours=str("0001-01-01 0")+str(Total_NP_Hours)
+                NPTotalHours=str(NPTotalHours)
+            else:
+                Total_NP_Hours=str(Total_NP_Hours)
+                NPTotalHours=str(NPTotalHours)
+                
+            Total_NP_Hours  = dt.timedelta(hours=int(Total_NP_Hours[11:13]),minutes=int(Total_NP_Hours[14:16]),seconds=int(Total_NP_Hours[17:19]))
+            NPTotalHours  = dt.timedelta(hours=int(NPTotalHours[11:13]),minutes=int(NPTotalHours[14:16]),seconds=int(NPTotalHours[17:19]))
+            P_Time = Total_NP_Hours + NPTotalHours
+            
+            QC_E_Time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+            Uni_ID=UserID+datetime.now().strftime('%d%m%Y%H%M%S')
+
+
+            QC_Date=StringVar()
+            QC_UserID=StringVar()
+            WIT_ProcessDate=IntVar()
+            TRANSACTION_TEAM=StringVar()
+            TRANSACTIONS=StringVar()
+            WIT_Number=StringVar()
+            UserID_Processor=StringVar()
+            Name_Processor=StringVar()
+            Skill_Level=StringVar()
+            Value_Note=StringVar()
+            Completed_Correctly=StringVar()
+            Error_Code=StringVar()
+            Error_Description=StringVar()
+            Error_Risk_Rating=StringVar()
+            QC_Comments=StringVar()
+            
+            #Feedback_Date=StringVar()
+            #Feedback_Given_By=StringVar()
+            #Comments_on_Action=StringVar()
+
+
+            QC_Date=today.strftime('%d-%m-%Y')
+            QC_UserID=UserID
+            WIT_ProcessDate=QC_T_WIT_Date.get()
+            TRANSACTION_TEAM=QC_C_Teamname.get()
+            TRANSACTIONS=QC_C_Transaction.get()
+            Sub_Team_Name=QC_E_SubTeam.get()
+            WIT_Number=QC_C_WIT_No.get()
+            Pos=QC_C_UserID.get().find('-')
+            UserID_Processor=QC_C_UserID.get()[0:Pos]
+            Name_Processor=QC_C_UserID.get()[Pos+1:]
+            Skill_Level=QC_C_S_Level.get()
+
+            VD=QC_C_Value_Note.get().find('$')
+            VP=QC_C_Value_Note.get().find('£')
+            VE=QC_C_Value_Note.get().find('€')
+
+            Value_Note=str(QC_C_Currency.get()) + QC_C_Value_Note.get()
+            Completed_Correctly=QC_C_Completed_Status.get()
+            Error_Code=QC_C_ErrorCode.get()
+            Error_Description=QC_T_Error_Des.get(1.0,END).strip()
+            Error_Risk_Rating=QC_T_E_RiskRate.get(1.0,END).strip()
+            QC_Comments=QC_T_Comments.get(1.0,END).strip()
+            
+            #Feedback_Date=""
+            #Feedback_Given_By=""
+            #Comments_on_Action=""
+
+            
+
+            if len(WIT_ProcessDate)<1 or len(TRANSACTION_TEAM)<1 or len(TRANSACTIONS)<1 or len(WIT_Number)<1 or len(UserID_Processor)<1 or len(Skill_Level)<1 or len(Completed_Correctly)<1:
+                messagebox.showwarning("Data Missing","Select required data")
+                return False
+
+            if Completed_Correctly=='No':
+                if len(Error_Code)==0 or len(QC_Comments)==0:
+                    messagebox.showwarning("Error Data Missing","Error code or commands Missing")
+                    return False
+            if VP>-1 or VD>-1 or VE>-1:
+                messagebox.showwarning("WARNING","Remove currency symbol from value box")
+                return False
+            T_Name1=QC_C_Teamname.get()
+            S_Q = """select * from TblTeam_data where Team_Name = (?)"""
+            S_L=[T_Name1]
+            rows1=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+            Trans_list_QC = []
+            for i in rows1:
+                Trans_list_QC.append(i[1])
+            if len(QC_C_Transaction.get())>0 :
+                if QC_C_Transaction.get() not in Trans_list_QC:
+                    messagebox.showerror("Incorrect Transaction Name", "Enter valid Transaction name")
+                    QC_C_Transaction.focus_set()
+                    QC_C_Transaction.delete(0, END)
+                else:
+                    pass
+
+            #--Pro Submit--
+            ColumQ="INSERT INTO TblProduction (P_DATE,Uniq_ID,USERID,USER_TEAM,TRANSACTIONS,TRANSACTION_TEAM,Sub_Team_NAME,A_COUNT,P_TYPE,A_STATUS,Comments,START_TIME,END_TIME,PAUSE_TIME) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+            ValQ=[P_Date,Uni_ID,User_ID,User_Team,Trans,T_Team,Sub_Team_Name,QC_Count,P_TYPE,A_STATUS,Comments,QC_S_Time,QC_E_Time,str(0)+str(P_Time)]
+            InsertQ(ColumQ,ValQ,Data_Base)
+            
+            Old_Time=QC_E_Time
+            NPTotalHours = datetime.min
+
+            ######### New Entry ##########
+            Total_NP_Hours = datetime.min
+            
+            
+            #--QC Submit--
+            ColumQ="INSERT INTO TblQCProducation (QC_Date,QC_UserID,WIT_ProcessDate,TRANSACTION_TEAM,TRANSACTIONS,Sub_Team_NAME,WIT_Number,UserID_Processor,Name_Processor,Skill_Level,Value_Note,Completed_Correctly,Error_Code,Error_Description,Error_Risk_Rating,QC_Comments,Uniq_ID,A_COUNT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+            ValQ=[QC_Date,QC_UserID,WIT_ProcessDate,TRANSACTION_TEAM,TRANSACTIONS,Sub_Team_Name,WIT_Number,UserID_Processor,Name_Processor,Skill_Level,Value_Note,Completed_Correctly,Error_Code,Error_Description,Error_Risk_Rating,QC_Comments,Uni_ID,QC_Count]
+            InsertQ(ColumQ,ValQ,Data_Base)
+
+            Login_c=0
+            QC_C_WIT_No.delete(0, END)
+            QC_C_Value_Note.delete(0, END)
+            QC_C_Value_Note.insert(0,'0.0')
+            QC_C_Completed_Status.delete(0, END)
+            QC_C_Completed_Status.insert(0, 'Yes')
+
+            QC_C_ErrorCode.config(state='normal')
+            QC_C_ErrorCode.delete(0, END)
+            QC_C_ErrorCode.config(state='disabled')
+            QC_T_Error_Des.config(state='normal')
+            QC_T_Error_Des.delete(1.0, END)
+            QC_T_Error_Des.config(state='disabled')
+            QC_T_E_RiskRate.config(state='normal')
+            QC_T_E_RiskRate.delete(1.0, END)
+            QC_T_E_RiskRate.config(state='disabled')
+            QC_T_Comments.delete(1.0, END)
+            QC_E_Count.delete(0,END)
+            QC_E_Count.insert(0,1)
+
+        QC_B_Submit = Button(QC_Frame,text="Submit",width=12,height=1,bg="#00728F",foreground="white", font=("Calibri", 11,"bold"),borderwidth=3,command=QC_Submit,cursor="hand2" )
+        QC_B_Submit.place(x=280+350,y=310)
+
+        Hme_Button.place(relx=0.01,rely=0.03)
+
+        S_Q="SELECT Quotes FROM Non_Production_Data ORDER BY RANDOM()LIMIT 1 "
+        rows=ViewQueryfun(S_Q,Data_Base_Support)
+        Quotes1=rows[0][0]
+        QC_Quotes = Label(QC_Frame,text=Quotes1,fg="#515056",bg="white",bd=0, font=("Calibri", 11,"bold"),wraplength=730)
+        QC_Quotes.place(x=280+70,y=410)
+        
+
+        def QC_Close(QC_Frame):
+            MsgAnswer = messagebox.askyesno("Warning!!", "Do you want to Switch Window?")
+            if MsgAnswer == True:
+                QC_Frame.destroy()
+                Quality_Button.config(state='normal',bg="#00728F",foreground="white",font=("Calibri", 11,"bold"))
+                Hme_Button.place_forget()
+                Lst3.delete(*Lst3.get_children())
+                Count_Update()
+
+        Hme_Button.config(command=lambda:QC_Close(QC_Frame))
+
+    ######################################################################################################################################################################################################################################################    
+    #------------------------Dashboard-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ######################################################################################################################################################################################################################################################
+    def dashboard():
+         
+        Dashboard_Button.config(state='disabled',bg="#98d4e3",font=("Calibri", 11,"bold"))
+
+        Dash_w= Toplevel(Officeinn)
+        Dash_w.geometry("600x500+700+378")
+        Dash_w.resizable(0,0)
+        Dash_w.title("Dashboard")
+        Dash_w.config(bg='white',)
+        Dash_w.iconbitmap(Icon_Image)
+        
+
+        L_top=Frame(Dash_w,width=590,height=2,bg='#00728F')
+        L_top.place(x=5,y=100)
+        L_Bot=Frame(Dash_w,width=590,height=2,bg='#00728F')
+        L_Bot.place(x=5,y=420)
+
+        
+        def Dash_Submit():
+      
+            #--Login Time 
+            S_Date=QC_E_Date.get()
+            S_Q1="select max(END_TIME) from TblNon_Production where P_DATE=(?) and USER_ID=(?) and ACTIVITY='Login';"
+            S_L1=[S_Date,UserID]
+            rows1=SelectQueryfun(S_Q1,S_L1,Data_Base)
+            Login_Time=rows1[0][0]
+            
+            
+            #--Logout Time
+            S_Q2="select max(END_TIME) from TblNon_Production where P_DATE=(?) and USER_ID=(?) and ACTIVITY='Logout';"
+            S_L2=[S_Date,UserID]
+            rows2=SelectQueryfun(S_Q2,S_L2,Data_Base)
+            Logout_Time=rows2[0][0]
+            
+            if Logout_Time==None:
+                S_Q2="select max(END_TIME) from TblProduction where P_DATE=(?) and USERID=(?);"
+                S_L2=[S_Date,UserID]
+                rows2=SelectQueryfun(S_Q2,S_L2,Data_Base)
+                Logout_Time=rows2[0][0]
+            
+
+            
+            if  Login_Time == None or Logout_Time==None:
+ 
+                Dash_L_Login_T.config(text="Login Time :" )
+                Dash_L_Logout_T.config(text="Logout Time : " )
+                Dash_L_Pro_Count.config(text="Production #  : " )
+                Dash_L_QC_Count.config(text="QC # : " )
+                Dash_L_Break_Hours.config(text='Break Hours : ' )
+                Dash_L_NPHrs.config(text="Diverted Hours : " )
+                Dash_L_Pro_Percentage.config(text="Productivity % : " )
+                Dash_L_utilization.config(text="Utilisation % : " )
+                Dash_L_QC_Percentage.config(text="Quality % : " )
+                Dash_w.focus_force()
+                return False
+
+            #--Pro Count--
+            S_Q3="SELECT sum(A_Count) from TblProduction where USERID=(?) and P_Date=(?) and A_STATUS<> 'Diarised' and P_TYPE='Production';"
+            S_L3=[UserID,S_Date]
+            rows3=SelectQueryfun(S_Q3,S_L3,Data_Base)
+            
+            Pro_Count1=rows3[0][0]
+            
+            #--QC Count--
+            S_Q4="SELECT sum(A_Count) from TblProduction where USERID=(?) and P_Date=(?) and A_STATUS<> 'Diarised' and P_TYPE='QC';"
+            S_L4=[UserID,S_Date]
+            rows4=SelectQueryfun(S_Q4,S_L4,Data_Base)
+            QC_Count=rows4[0][0]
+             
+            
+            #--Break Hrs--
+            S_Q5="select NP_Time from TblNon_Production where P_Date=(?) and USER_ID==(?) and NP_Time<>'NULL' and ACTIVITY='Break'"
+            S_L5=[S_Date,UserID]
+            rows5=SelectQueryfun(S_Q5,S_L5,Data_Base)
+            T_Br_Hrs=[]
+            for rows2 in rows5:
+                T_Br_Hrs.append(rows2[0])
+                
+            Break = dt.timedelta()
+            
+            for i in T_Br_Hrs:
+                (H, M, S) = i.split(':')
+                d = dt.timedelta(hours=int(H), minutes=int(M), seconds=int(S))
+                Break += d
+            
+            #--Break & NP Hrs--
+            S_Q6="select NP_Time from TblNon_Production where P_Date=(?) and USER_ID==(?) and NP_Time<>'NULL' and ACTIVITY<>'Break'"
+            S_L6=[S_Date,UserID]
+            rows6=SelectQueryfun(S_Q6,S_L6,Data_Base)
+            T_NP_Hrs=[]
+            for rows2 in rows6:
+                T_NP_Hrs.append(rows2[0])
+            Diverted = dt.timedelta()
+            for i in T_NP_Hrs:
+                (H, M, S) = i.split(':')
+                d = dt.timedelta(hours=int(H), minutes=int(M), seconds=int(S))
+                Diverted += d
+            
+            
+            #--productivity--
+            #=sum of all transaction(No.of items/RPH) / ((logout-login)-total non-production)
+            #S_Q6="SELECT sum(case when P_Type = 'Production' then(Cast(TblProduction.A_COUNT AS Float)/Cast(TblTeam_data.PRODUCTION_RPH AS Float))ELSE 0 end)+sum(case when P_Type = 'QC' then(Cast(TblProduction.A_COUNT AS Float)/Cast(TblTeam_data.QC_RPH AS Float))ELSE 0 end) from TblProduction inner join TblTeam_data on TblTeam_data.TRANSACTION_N=TblProduction.TRANSACTIONS where USERID=(?) and P_Date==(?);"
+            
+            # S_Q6="SELECT sum(case when P_Type = 'Production' then(Cast(TblProduction.A_COUNT AS Float)/Cast(TblProduction.T_RPH AS Float))ELSE 0 end)+sum(case when P_Type = 'QC' then(Cast(TblProduction.A_COUNT AS Float)/Cast(TblProduction.QC_RPH AS Float))ELSE 0 end) from TblProduction where USERID=(?) and P_Date==(?);"
+            # S_L6=[UserID,S_Date]
+            # rows6=SelectQueryfun(S_Q6,S_L6,Data_Base)
+            
+            # RPH=[]
+            # for i in rows6:
+            #     RPH.append(i[0])
+            # Workout=RPH[0]
+            
+            # if Workout=="Null" or Workout is None:
+            #     Workout=0
+            
+            (H_i, M_i, S_i) = (datetime.strptime(Login_Time, '%d-%m-%Y %H:%M:%S').strftime('%H:%M:%S')).split(':')
+            (H_O, M_O, S_O) =(datetime.strptime(Logout_Time, '%d-%m-%Y %H:%M:%S').strftime('%H:%M:%S')).split(':')
+
+            L_Hours=dt.timedelta(hours=int(H_O), minutes=int(M_O), seconds=int(S_O))-dt.timedelta(hours=int(H_i), minutes=int(M_i), seconds=int(S_i))
+            
+            # if Diverted>L_Hours:
+            #     Dash_L_Login_T.config(text="Login Time :" )
+            #     Dash_L_Logout_T.config(text="Logout Time : " )
+            #     Dash_L_Pro_Count.config(text="Production #  : " )
+            #     Dash_L_QC_Count.config(text="QC # : " )
+            #     Dash_L_Break_Hours.config(text='Break Hours : ' )
+            #     Dash_L_NPHrs.config(text="Diverted Hours : " )
+            #     Dash_L_Pro_Percentage.config(text="Productivity % : " )
+            #     Dash_L_utilization.config(text="Utilisation % : " )
+            #     Dash_L_QC_Percentage.config(text="Quality % : " )
+            #     Dash_w.focus_force()
+            #     return False
+            Available_Hours=L_Hours-Break
+            Available_Hours1=Available_Hours-Diverted
+            (H_NP, M_NP, S_NP)=str(Available_Hours1).split(':')
+
+            #C_Time=int(H_NP)+(int(M_NP)*1/60)+(int(S_NP)*1/3600)
+
+            
+            #productivity=(Workout/C_Time)*100
+            
+            #--Utilisation--
+            #((logout-login)-total non-production)/((logou-login-break)
+            Utilisation=(Available_Hours1/ Available_Hours)*100
+            
+            #--QC--
+            
+            #items checked-
+            S_Date=QC_E_Date.get()
+            S_Q6="Select Sum(A_Count) from TblQCProducation where UserID_Processor=(?) and WIT_ProcessDate=(?)"
+            S_L6=[UserID,S_Date]
+            rows6=SelectQueryfun(S_Q6,S_L6,Data_Base)
+            I_Checked=[]
+
+            for i in rows6:
+                I_Checked.append(i[0])
+            Items_Checked=I_Checked[0]
+            
+            #No of Error-
+            S_Date=QC_E_Date.get()
+            S_Q6="Select count(UserID_Processor) from TblQCProducation where UserID_Processor=(?) and WIT_ProcessDate=(?) and Completed_Correctly='No'"
+            S_L6=[UserID,S_Date]
+            rows6=SelectQueryfun(S_Q6,S_L6,Data_Base)
+            N_Error=[]
+            for i in rows6:
+                N_Error.append(i[0])
+            No_Error=N_Error[0]
+            
+            if No_Error==0 or Items_Checked==0 :
+               Error=100 
+            else:
+                Error=(1-(No_Error/Items_Checked))*100
+
+            #--Data Update---
+            
+            Dash_L_Login_T.config(text="Login Time : "+str(Login_Time[Login_Time.find(' ')+1:]))
+            Dash_L_Logout_T.config(text="Logout Time : "+str(Logout_Time[Logout_Time.find(' ')+1:]))
+            Dash_L_Pro_Count.config(text="Production #  : "+str(Pro_Count1))
+            Dash_L_QC_Count.config(text="QC # : "+str(QC_Count))
+
+            if Break>dt.timedelta(hours=1, minutes=0, seconds=0):
+                Dash_L_Break_Hours.config(text='Break Hours : '+str(Break),fg='red')
+            else:
+                
+                Dash_L_Break_Hours.config(text='Break Hours : '+str(Break),fg="#515056")
+
+            Dash_L_NPHrs.config(text="Diverted Hours : "+str(Diverted))
+            #Dash_L_Pro_Percentage.config(text="Productivity % : "+str(round(productivity,2))+"%")
+            Dash_L_Pro_Percentage.config(text="Productivity % : Under Develop")
+            Dash_L_utilization.config(text="Utilisation % : "+str(round(Utilisation,2))+"%")
+            Dash_L_QC_Percentage.config(text="Quality % : "+str(round(Error,2))+"%")
+
+        #-------Date---------
+        Dash_L_Date=Label(Dash_w,text="Date",fg="#515056",bg="white",bd=0, font=("Calibri", 12, "bold"))
+        Dash_L_Date.place(x=25+20,y=37)
+        QC_E_Date=DateEntry(Dash_w, background= "black", foreground= "white",bd=2,font=('Calibri',12,"bold"),date_pattern='dd-MM-yyyy')
+        QC_E_Date.place(x=25+20,y=60,width=110, height=20+5)
+        # today = dt.datetime.today()
+        # offset = max(1, (today.weekday() + 6) % 7 - 3)
+        # timedelta = dt.timedelta(offset)
+        # most_recent = today - timedelta
+        # P_Date=most_recent.strftime('%d-%m-%Y')
+        # QC_E_Date._set_text(P_Date)
+
+        #-------Login & Logout time---------
+        Dash_L_Login_T=Label(Dash_w,text="Login Time:",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_Login_T.place(x=25+10+20,y=130)
+
+        Dash_L_Logout_T=Label(Dash_w,text="Logout Time:",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_Logout_T.place(x=320+40,y=130)
+
+        #-------Pro & QC Count & %---------
+        Dash_L_Pro_Count=Label(Dash_w,text="Production # :",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_Pro_Count.place(x=25+10+20,y=190)
+
+        Dash_L_Pro_Percentage=Label(Dash_w,text="Productivity %:",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_Pro_Percentage.place(x=320+40 ,y=190)
+
+        Dash_L_QC_Count=Label(Dash_w,text="QC # :",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_QC_Count.place(x=25+10+20,y=250)
+
+        Dash_L_QC_Percentage=Label(Dash_w,text="Quality %:",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_QC_Percentage.place(x=25+10+20,y=310)
+
+        Dash_L_utilization=Label(Dash_w,text="Utilisation :",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_utilization.place(x=320+40, y=250)
+
+        Dash_L_Break_Hours=Label(Dash_w,text="Break Hours :",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_Break_Hours.place(x=25+10+20,y=370)
+
+        Dash_L_NPHrs=Label(Dash_w,text="Diverted Hours :",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_NPHrs.place(x=320+40 ,y=370)
+
+        Dash_L_NPHrs=Label(Dash_w,text="Diverted Hours :",fg="#515056",bg="white",bd=0, font=("Calibri", 13, "bold"))
+        Dash_L_NPHrs.place(x=320+40 ,y=370)
+        
+        # Dash_Submit()
+        
+        S_button=Button(Dash_w,text=">", command=Dash_Submit,font=("Bauhaus 93", 10,"bold"),bg='#00728F',fg='white',cursor="hand2")
+        S_button.place(x=160,y=59,width=30)
+
+        # - - Report Type - - 
+        Dash_L_RType = Label(Dash_w,text="Report Type",fg="#515056",bg="white",bd=0, font=("Calibri", 9, "bold"))
+        Dash_L_RType.place(x=150,y=450-15)
+        R_List=["Production ","Non_production","QC"]
+        Dash_C_RType = AutocompleteCombobox(Dash_w ,font=("Calibri",11),foreground="#515056",completevalues=R_List,state='readonly')
+        Dash_C_RType.place(x=150,y=470-15,width=130)
+        Dash_C_RType.config(state='normal')
+        Dash_C_RType.insert(0,'Production')
+        Dash_C_RType.config(state='readonly')
+        
+
+        #--User Report--
+        def User_Report():
+            S_Date=QC_E_Date.get()
+            
+            conn = sqlite3.connect(Data_Base)
+            Pro = "SELECT * FROM TblProduction where USERID='"+ UserID +"' and P_Date='"+ S_Date +"' "
+            Pro1=[Pro]
+            N_Pro = "SELECT * FROM TblNon_Production where USER_ID='"+ UserID +"' and P_Date='"+ S_Date +"'  "
+            N_Pro1=[N_Pro]
+            
+            QC = "SELECT * FROM TblQCProducation where UserID_Processor='"+ UserID +"' and WIT_ProcessDate='"+ S_Date +"' "
+            QC1=[QC]
+            for q in Pro1:
+                df1 = pd.read_sql_query(q, conn)
+            for q in N_Pro1:
+                df2 = pd.read_sql_query(q, conn)
+            for q in QC1:
+                df3 = pd.read_sql_query(q, conn)
+                 
+            
+
+            if Dash_C_RType.get().strip()=="Production":
+                conn.close()
+                messagebox.showinfo('Completed','User Report Created!')
+                xw.view(df1, table=False)
+                 
+            elif Dash_C_RType.get().strip()=="Non_production":
+                conn.close()
+                messagebox.showinfo('Completed','User Report Created!')
+                xw.view(df2, table=False)
+                
+            elif Dash_C_RType.get().strip()=="QC":
+                conn.close()
+                messagebox.showinfo('Completed','User Report Created!')
+                xw.view(df3, table=False)
+            conn.close()
+             
+        Report_button=Button(Dash_w,text="User Report", command=User_Report,font=("Calibri", 11,"bold"),bg='#00728F',fg='white',cursor="hand2")
+        Report_button.place(x=15,y=450 )
+        
+        # Dash_Submit()
+
+        def Dash_avoid():
+            Dash_w.destroy()
+            Officeinn.focus_force()
+            Dashboard_Button.config(state='normal',bg="#00728F",font=("Calibri", 11,"bold"))
+
+        Dash_w.grab_set() 
+        Dash_w.protocol("WM_DELETE_WINDOW", Dash_avoid)
+    
+
+    ######################################################################################################################################################################################################################################################
+    #------------------------ADMIN-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ######################################################################################################################################################################################################################################################
+    def Admin():
+         
+        Admin.config(state='disabled',bg="#98d4e3",font=("Calibri", 11,"bold"))
+        global F_Count
+        Admin_w= Toplevel(Officeinn)
+        Admin_w.geometry("600x530+700+378")
+        Admin_w.resizable(0,0)
+        Admin_w.title("Admin")
+        Admin_w.config(bg='white')
+        Admin_w.iconbitmap(Icon_Image)
+
+        L_top=Frame(Admin_w,width=590,height=2,bg='#00728F')
+        #L_top.place(x=5,y=100)
+        L_Mid=Frame(Admin_w,width=590,height=2,bg='#00728F')
+        #L_Mid.place(x=5,y=335)
+        L_Bot=Frame(Admin_w,width=590,height=2,bg='#00728F')
+        L_Bot.place(x=5,y=470-5)
+
+        #---Team Combo---
+        def T_Check(a):
+            
+            for item in Trans1.get_children():
+                Trans1.delete(item)
+            #Admin_C_UserID.delete(0, END)
+            Admin_E_Trans.config(state='normal') 
+            Admin_E_Trans.delete(0,END)
+            Admin_E_Trans.config(state='disabled') 
+            Admin_E_P_Type.config(state='normal') 
+            Admin_E_P_Type.delete(0,END)
+            Admin_E_P_Type.config(state='disabled')
+            Admin_E_P_Count.config(state='normal')
+            Admin_E_P_Count.delete(0,END)
+            Admin_E_P_Count.insert(0,0)
+            Admin_E_P_Count.config(state='disabled')
+            Admin_L_UpCount.place_forget()
+            P_Count_Admin=0
+            
+            if len(Admin_C_Teamname.get())>0 :
+                if Admin_C_Teamname.get() not in TeamName:
+                    messagebox.showerror("Incorrect Team Name", "Enter valid Team name")
+                    Admin_C_Teamname.focus_set()
+                    Admin_C_Teamname.delete(0, END)
+                else:
+                    pass
+        
+        
+        Admin_L_Teamname = Label(Admin_w,text="Team Name",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_Teamname.place(x=40,y=30)
+        Admin_C_Teamname = AutocompleteCombobox(Admin_w ,font=("Calibri",11),foreground="#515056",completevalues=TeamName)
+        Admin_C_Teamname.place(x=40,y=50,width=180)
+        #Admin_C_Teamname.bind('<FocusOut>',T_Check)
+        Admin_C_Teamname.bind('<<ComboboxSelected>>',T_Check)
+
+        #---U_ID---
+        com_query2 = ('Select * from TblUser_data')
+        U_ID_S=ViewQueryfun(com_query2,Data_Base_Support)
+        U_List = []
+        for i in U_ID_S:
+            U_List.append(i[0])
+
+        def UID_Check(a):
+            for item in Trans1.get_children():
+               Trans1.delete(item)
+            #Admin_C_UserID.delete(0, END)
+            Admin_E_Trans.config(state='normal') 
+            Admin_E_Trans.delete(0,END)
+            Admin_E_Trans.config(state='disabled') 
+            Admin_E_P_Type.config(state='normal') 
+            Admin_E_P_Type.delete(0,END)
+            Admin_E_P_Type.config(state='disabled')
+            Admin_E_P_Count.config(state='normal')
+            Admin_E_P_Count.delete(0,END)
+            Admin_E_P_Count.insert(0,0)
+            Admin_E_P_Count.config(state='disabled')
+            Admin_L_UpCount.place_forget()
+            
+            if len(Admin_C_UserID.get())>0 :
+                if Admin_C_UserID.get() not in U_List:
+                    messagebox.showerror("Warning", "Enter valid User ID")
+                    Admin_C_UserID.focus_set()
+                    Admin_C_UserID.delete(0, END)
+                else:
+                    pass
+        
+        Admin_L_UserID = Label(Admin_w,text="User ID",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_UserID.place(x=250+20,y=30)
+        Admin_C_UserID = AutocompleteCombobox(Admin_w ,font=("Calibri",11),completevalues=U_List,foreground="#515056")
+        Admin_C_UserID.place(x=250+20,y=50,width=100)
+        Admin_C_UserID.bind('<<ComboboxSelected>>',UID_Check)
+    
+        #---ProcessDate---
+        def d_check(a):
+            for item in Trans1.get_children():
+              Trans1.delete(item)
+           
+            #Admin_C_UserID.delete(0, END)
+            Admin_E_Trans.config(state='normal') 
+            Admin_E_Trans.delete(0,END)
+            Admin_E_Trans.config(state='disabled') 
+            Admin_E_P_Type.config(state='normal') 
+            Admin_E_P_Type.delete(0,END)
+            Admin_E_P_Type.config(state='disabled')
+            Admin_E_P_Count.config(state='normal')
+            Admin_E_P_Count.delete(0,END)
+            Admin_E_P_Count.insert(0,0)
+            Admin_E_P_Count.config(state='disabled')
+            Admin_L_UpCount.place_forget()
+            
+        Admin_L_Date=Label(Admin_w,text="Date",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_Date.place(x=420,y=30)
+        Admin_E_Date=DateEntry(Admin_w, background= "black", foreground= "white",bd=2,font=('Calibri',11),date_pattern='dd-MM-yyyy')
+        Admin_E_Date.place(x=420,y=50,width=110, height=20+5)
+        today = dt.datetime.today()
+        offset = max(1, (today.weekday() + 6) % 7 - 3)
+        timedelta = dt.timedelta(offset)
+        most_recent = today - timedelta
+        P_Date=most_recent.strftime('%d-%m-%Y')
+        Admin_E_Date._set_text(P_Date)
+        Admin_E_Date.bind('<ButtonRelease-1>',d_check)
+        
+        #--Enter Button
+        def Get_data():
+
+            if Admin_C_Teamname.get()=="" or Admin_C_UserID.get()=="" or Admin_E_Date.get()=="":
+                 messagebox.showerror("Warning", "Select required fields to view data")
+                 return False
+
+            for item in Trans1.get_children():
+                Trans1.delete(item)
+            User_ID_Admin=Admin_C_UserID.get()
+            P_Date_Admin= Admin_E_Date.get()
+            T_Name_Admin=Admin_C_Teamname.get()
+
+            A_Production = pd.DataFrame()
+            for DB in DB_Name:
+                Data_Base=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'+'\\'+DB
+                try:
+                    conn = sqlite3.connect(Data_Base,timeout=45,uri=True)
+                    query1="SELECT Transactions,A_STATUS,SUM(case when P_Type = 'Production' then A_Count ELSE 0 end)FROM TblProduction where USERID='"+ User_ID_Admin +"' and P_Date='"+ P_Date_Admin +"' and TRANSACTION_TEAM='"+ T_Name_Admin +"' and P_Type = 'Production'  GROUP BY Transactions,A_STATUS ORDER BY Transactions and A_STATUS ASC"
+                    df = pd.read_sql_query(query1, conn)
+                    A_Production = A_Production.append(df)
+                    conn.close()  
+                except:
+                    conn.close()
+                    messagebox.showerror("Database Crash","Office Inn crashed, Please reopen the tool")
+                    return False
+            
+            A_Production = A_Production.values.tolist()
+            
+            if len(A_Production)==0:
+                messagebox.showerror("Alert","No Data found")
+                Admin_w.focus_force()
+                return False
+            for row in A_Production:
+                Trans1.insert("", END, values=row) 
+               
+
+                
+        SSD = Button(Admin_w,text="↵",width=2,height=1,bg="#00728F",foreground="white", font=("Calibri", 10,"bold"),borderwidth=2,command=Get_data,cursor="hand2" )
+        SSD.place(x=550,y=50)
+
+        #--Process Line items
+        Trans1=Treeview(Admin_w,columns=(1,2,3),show='headings',height = 10)
+        Trans1.column("# 1",anchor=W, stretch=NO,width=195+38 )
+        Trans1.heading(1, text="Transactions",anchor=W)
+        Trans1.column("# 2",anchor=W, stretch=NO, width=145+38)
+        Trans1.heading(2, text="Process Type",anchor=W)
+        Trans1.column("# 3",anchor=CENTER, stretch=NO, width=125+38)
+        Trans1.heading(3, text="Production Count",anchor=CENTER)
+        Trans1.place(x=8,y=105)
+        style = ttk.Style()
+        style.theme_use("vista")
+        style.configure('Treeview.Heading',background='#9e9d9d',foreground='Black',font=("Calibri", 11, "bold"))
+        vsb1 = ttk.Scrollbar(Trans1, orient="vertical", command=Trans1.yview)
+        vsb1.place(x=562 , y=2, height=223)
+        Trans1.configure(yscrollcommand=vsb1.set)
+
+        def selectItem(a):
+            global P_Type_Admin,P_Count_Admin,Trans_Admin
+            curItem = Trans1.focus()
+            treedict = (Trans1.item(curItem))
+            Trans_Admin = treedict['values'][0]
+            P_Type_Admin = treedict['values'][1]
+            P_Count_Admin=treedict['values'][2]
+        
+            Admin_E_Trans.config(state='normal') 
+            Admin_E_Trans.delete(0,END)
+            Admin_E_Trans.insert(0,Trans_Admin)
+            Admin_E_Trans.config(state='disabled') 
+
+            Admin_E_P_Type.config(state='normal') 
+            Admin_E_P_Type.delete(0,END)
+            Admin_E_P_Type.insert(0,P_Type_Admin)
+            Admin_E_P_Type.config(state='disabled')
+
+            Admin_E_P_Count.config(state='normal')
+            Admin_E_P_Count.delete(0,END)
+            Admin_E_P_Count.insert(0,0)
+            Admin_E_P_Count.config(state='disabled')
+            Admin_L_UpCount.place_forget()
+
+        Trans1.bind('<ButtonRelease-1>', selectItem)
+
+        #--Selected Tranaction--
+        Admin_L_Trans=Label(Admin_w,text="Selected Tranaction",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_Trans.place(x=50,y=350)
+        Admin_E_Trans=Entry(Admin_w, background= "white", foreground= "black",bd=2,font=('Calibri',10),state='disabled')
+        Admin_E_Trans.place(x=50,y=370,width=180, height=25)
+
+        #--Selected P Type--
+        Admin_L_P_Type=Label(Admin_w,text="Selected P_Type",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_P_Type.place(x=380,y=350)
+        Admin_E_P_Type=Entry(Admin_w, background= "white", foreground= "black",bd=2,font=('Calibri',10),state='disabled')
+        Admin_E_P_Type.place(x=380,y=370,width=180, height=25)
+        #--0 Count--
+        Admin_L_P_Count=Label(Admin_w,text="Count Regulator",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_P_Count.place(x=50,y=400+10)
+        Admin_E_P_Count=Entry(Admin_w, background= "white", foreground= "black",bd=2,font=('Calibri',10,"bold"),justify='center')
+        Admin_E_P_Count.place(x=90,y=420+10,width=29, height=25)
+        Admin_E_P_Count.insert(0,0)
+        Admin_E_P_Count.config(state='disabled')
+        #--Updated Count--
+        Admin_L_UpCount=Label(Admin_w,text="Count",fg="#515056",bg="white",bd=0, font=("Calibri", 12, "bold"))
+
+       #-- + & - Buttons--
+        def adding():
+            global P_Count_Admin,F_Count
+
+            if len(Trans1.selection())==0:
+                messagebox.showerror("Warning","Select the transaction to Update")
+                return False
+            
+            Add = int(Admin_E_P_Count.get())+1
+            Admin_E_P_Count.config(state='normal')
+            Admin_E_P_Count.delete(0,END)
+            Admin_E_P_Count.insert(0,Add)
+            Admin_E_P_Count.config(state='disabled')
+            F_Count=int(Admin_E_P_Count.get())+P_Count_Admin
+            Admin_L_UpCount.config(text="Final Count : "+ str(F_Count))
+            Admin_L_UpCount.place(x=240+10,y=430)
+        
+        def sub():
+            global P_Count_Admin,F_Count
+            if len(Trans1.selection())==0:
+                messagebox.showerror("Warning","Select the transaction to update")
+                return False
+            sub1 = int(Admin_E_P_Count.get())-1
+            Admin_E_P_Count.config(state='normal')
+            Admin_E_P_Count.delete(0,END)
+            Admin_E_P_Count.insert(0,sub1)
+            Admin_E_P_Count.config(state='disabled')
+            F_Count=int(Admin_E_P_Count.get())+P_Count_Admin
+            if F_Count<0:
+                messagebox.showerror("Warning","Negative values not allowed")
+                Admin_L_UpCount.config(text="Final Count : "+ str(P_Count_Admin))
+                Admin_L_UpCount.place(x=240+10,y=430)
+                Admin_E_P_Count.config(state='normal')
+                Admin_E_P_Count.delete(0,END)
+                Admin_E_P_Count.insert(0,0)
+                Admin_E_P_Count.config(state='disabled')
+                return False
+            Admin_L_UpCount.config(text="Final Count : "+ str(F_Count))
+            Admin_L_UpCount.place(x=240+10,y=430)
+
+        Sub_Butt = Button(Admin_w,text="-",width=2,height=1,bg="#00728F",foreground="white", font=("Calibri", 10,"bold"),borderwidth=2,command=sub, activebackground='#fc453f',cursor="hand2" )
+        Sub_Butt.place(x=50,y=420+10)
+
+        Add_Butt = Button(Admin_w,text="+",width=2,height=1,bg="#00728F",foreground="white", font=("Calibri", 10,"bold"),borderwidth=2,command=adding,activebackground="#00ab1a",cursor="hand2" )
+        Add_Butt.place(x=135,y=420+10)
+
+        def Dash_avoid():
+            Admin_w.destroy()
+            Officeinn.focus_force()
+            Admin.config(state='normal',bg="#00728F",font=("Calibri", 11,"bold"))
+
+
+        Admin_w.grab_set() 
+        Admin_w.protocol("WM_DELETE_WINDOW", Dash_avoid)
+
+        #--Admin Submit--
+        def admin_Submit():
+
+            global P_Count_Admin,P_Count_Admin
+            
+            if Admin_C_Teamname.get()=="" or Admin_C_UserID.get()=="":
+                 messagebox.showerror("Warning","Select team & User Details to update")
+                 return False
+
+            if len(Trans1.selection())==0:
+                messagebox.showerror("Warning","Select the transaction to update")
+                return False
+            F_Count=int(Admin_E_P_Count.get())+P_Count_Admin
+            if F_Count == P_Count_Admin:
+                 messagebox.showerror("Warning","No changes made!!")
+                 return False
+            
+            U_Date=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+            Admin_PDate=Admin_E_Date.get()
+            Admin_UserID=Admin_C_UserID.get()
+            
+            Admin_T_Name=Admin_E_Trans.get()
+            Admin_User_Team=Admin_C_Teamname.get()
+            Admin_A_Count=Admin_E_P_Count.get()
+            Admin_P_Type="Production"
+            Admin_A_Status=Admin_E_P_Type.get()
+            Admin_comments= f'Updated by {U_Name} on {U_Date}'
+            
+            
+            S_Q="""select * from TblTeam_data where TRANSACTION_N = ? and TEAM_NAME = ? """
+            S_L=[Admin_T_Name,Admin_User_Team]
+            rows1=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+        
+            for i in rows1:
+                S_Team_N1=i[2]
+
+            if S_Team_N1==Admin_User_Team:
+                S_Team_N=""
+            else:
+                S_Team_N=S_Team_N1
+        
+            S_Q="select * from TblUser_data WHERE User_ID = (?) "
+            S_L=[Admin_UserID]
+            rows=SelectQueryfun(S_Q,S_L,Data_Base_Support)
+            for row in rows:
+                U_Name1=row[1]
+                T_Name1=row[2]
+            User_Team=T_Name1
+ 
+            if T_Name1 not in Team_list:
+                 Data_Base1=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn\Other.db'
+            else:
+                # if T_Name1=="CEC-UK" or T_Name1=="CEC-US":
+                #     T_Name1="Customer Experience Centre"
+                # T_Name1=T_Name1.replace(" ", "_")
+                Data_Base1=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'+'\\'+T_Name1+'.db'
+           
+            
+            ColumQ="INSERT INTO TBlProduction (P_DATE,USERID,USER_TEAM,TRANSACTIONS,Sub_Team_Name,TRANSACTION_TEAM,A_COUNT,P_TYPE,A_STATUS,COMMENTS) VALUES (?,?,?,?,?,?,?,?,?,?);"
+            ValQ=[Admin_PDate,Admin_UserID,User_Team,Admin_T_Name,S_Team_N,Admin_User_Team,Admin_A_Count,Admin_P_Type,Admin_A_Status,Admin_comments]
+            InsertQ(ColumQ,ValQ,Data_Base1)
+
+            Admin_E_Trans.config(state='normal') 
+            Admin_E_Trans.delete(0,END)
+            Admin_E_Trans.config(state='disabled') 
+            Admin_E_P_Type.config(state='normal') 
+            Admin_E_P_Type.delete(0,END)
+            Admin_E_P_Type.config(state='disabled')
+            Admin_E_P_Count.config(state='normal')
+            Admin_E_P_Count.delete(0,END)
+            Admin_E_P_Count.insert(0,0)
+            Admin_E_P_Count.config(state='disabled')
+            Admin_L_UpCount.place_forget()
+            Get_data()
+            messagebox.showinfo("Alert","Transaction Updated")
+             
+
+        Update_Admin = Button(Admin_w, text="Update",bg="#00728F",foreground="white",font=("Calibri", 11,"bold"),command=admin_Submit,cursor="hand2")
+        Update_Admin.place(x=380+70,y=420 )
+
+        #----------------------------Raw Report---------------------------
+        #--Start Date--
+        Admin_L_SDate=Label(Admin_w,text="Start Date",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_SDate.place(x=50,y=490-20)
+        Admin_E_SDate=DateEntry(Admin_w, background= "black", foreground= "white",bd=2,font=('Calibri',11),date_pattern='dd-MM-yyyy')
+        Admin_E_SDate.place(x=50,y=510-20,width=110, height=20+5)
+
+        Admin_L_EDate=Label(Admin_w,text="End Date",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        Admin_L_EDate.place(x=250,y=490-20)
+        Admin_E_EDate=DateEntry(Admin_w, background= "black", foreground= "white",bd=2,font=('Calibri',11),date_pattern='dd-MM-yyyy')
+        Admin_E_EDate.place(x=250,y=510-20,width=110, height=20+5)
+
+        def Raw_Report():
+
+            if Admin_C_Teamname.get() == '':
+                messagebox.showerror("Team Name Missing", "Select Team Name")
+                Admin_w.focus_force()
+                return False
+            
+            if len(Admin_E_SDate.get())<1 or len(Admin_E_EDate.get())<1:
+                messagebox.showerror("Data Missing", "Select Start and End Date")
+                Admin_w.focus_force()
+                return False
+            
+            if Admin_E_SDate.get() > Admin_E_EDate.get() :
+                messagebox.showerror("Data Missing", "Incorrect Start and End Date")
+                Admin_w.focus_force()
+                return False
+                
+            ReportPath = fd.askdirectory(title='Select Folder Path')
+            if ReportPath != '':
+                F_Date=Admin_E_SDate.get()
+                T_Date=Admin_E_EDate.get()
+                
+                TempPath = ReportPath + r"/Office Inn Raw Data Report " + datetime.now().strftime('%d-%m-%Y %H%M%S') + ".xlsx"
+                
+                query1 = "select * from TblProduction where   P_Date >= '"+ F_Date +"' and P_Date <= '"+ T_Date +"' and (USER_TEAM = '" + Admin_C_Teamname.get() +"' OR TRANSACTION_TEAM = '" + Admin_C_Teamname.get() +"')"
+                query2 = "select * from TblNon_Production where   P_DATE >= '"+ F_Date +"' and P_DATE <= '"+ T_Date +"' and USER_TEAM = '" + Admin_C_Teamname.get() +"'"
+                query3 = "select * from TblQCProducation where WIT_ProcessDate between '"+ F_Date +"' AND '"+ T_Date +"' or Uniq_ID in (SELECT Uniq_ID from TblQCProducation WHERE QC_Date >= '"+ F_Date +"' AND QC_Date <= '"+ T_Date +"')"
+
+                
+                Excelsheets = ['Production', 'Non_Production','QC']
+                writer = pd.ExcelWriter(TempPath, engine = 'xlsxwriter')
+                
+                Production = pd.DataFrame()
+                Non_Production = pd.DataFrame()
+                QC = pd.DataFrame()
+
+                for DB in DB_Name:
+                    Data_Base=mypath+'\\'+DB
+                    try:
+                        conn = sqlite3.connect(Data_Base,timeout=45,uri=True)
+                        
+                        df1 = pd.read_sql_query(query1, conn)
+                        Production = Production.append(df1)
+                        
+                        df2 = pd.read_sql_query(query2, conn)
+                        Non_Production = Non_Production.append(df2)
+                        
+                        df3 = pd.read_sql_query(query3, conn)
+                        QC = QC.append(df3)
+                        conn.close()  
+                    except:
+                        conn.close()
+                        messagebox.showerror("Data Crash","Office Inn crashed, Please reopen the tool")
+                        return False
+                
+                QC=QC[QC.TRANSACTION_TEAM == str(Admin_C_Teamname.get())] 
+                
+                Dfs=[Production,Non_Production,QC]
+                i=0
+                for q in Dfs:
+                    q.to_excel(writer, sheet_name=Excelsheets[i], index=False)
+                    i=i+1
+                conn.close()
+                writer.save()
+                
+                messagebox.showinfo('Office Inn Raw Data','Office Inn Raw Data Report Exported!')
+                startfile(TempPath)
+            else:
+                messagebox.showerror('Folder Validation','Folder Path Not Selected!')
+
+
+
+        Raw_Report_Button = Button(Admin_w, text="Raw Report",bg="#00728F",foreground="white",font=("Calibri", 11,"bold"),command=Raw_Report,cursor="hand2" )
+        Raw_Report_Button.place(x=380+70,y=510-30 )
+
+
+    ######################################################################################################################################################################################################################################################
+    #------------------------Hourly Producation-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ######################################################################################################################################################################################################################################################
+    def H_Producation():
+        global P_selection
+        Clock_Button.config(state='disabled',bg="#98d4e3",font=("Calibri", 11,"bold"))
+         
+        H_Pro_w= Toplevel(Officeinn)
+        H_Pro_w.geometry("1300x480+300+378")
+        H_Pro_w.resizable(0,0)
+        H_Pro_w.title("Hourly Production")
+        H_Pro_w.config(bg='white')
+        H_Pro_w.iconbitmap(Icon_Image)
+
+
+        #---Team Combo---
+        def T_Check(a):
+            
+            if len(H_Pro_C_Teamname.get())>0 :
+                if H_Pro_C_Teamname.get() not in TeamName:
+                    messagebox.showerror("Incorrect Team Name", "Enter valid Team name")
+                    H_Pro_C_Teamname.focus_set()
+                    H_Pro_C_Teamname.delete(0, END)
+                else:
+                    pass
+            
+            for item in Hr_Count.get_children():
+                Hr_Count.delete(item)
+            
+
+        H_Pro_L_Teamname = Label(H_Pro_w,text="Team Name",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        H_Pro_L_Teamname.place(x=40,y=30)
+        H_Pro_C_Teamname = AutocompleteCombobox(H_Pro_w ,font=("Calibri",11),foreground="#515056",completevalues=TeamName)
+        H_Pro_C_Teamname.place(x=40,y=50,width=180)
+        #Admin_C_Teamname.bind('<FocusOut>',T_Check)
+        H_Pro_C_Teamname.bind('<<ComboboxSelected>>',T_Check)
+
+        #---ProcessDate---
+        def d_check(a):
+            for item in Hr_Count.get_children():
+                Hr_Count.delete(item)
+             
+        H_Pro_L_Date=Label(H_Pro_w,text="Date",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        H_Pro_L_Date.place(x=300,y=30)
+        H_Pro_E_Date=DateEntry(H_Pro_w, background= "black", foreground= "white",bd=2,font=('Calibri',11),date_pattern='dd-MM-yyyy')
+        H_Pro_E_Date.place(x=300,y=50,width=110, height=20+5)
+         
+        #Admin_E_Date.bind('<FocusOut>',d_check)
+        H_Pro_E_Date.bind('<ButtonRelease-1>',d_check)
+        #H_Pro_E_Date.bind('<<ComboboxSelected>>',d_check)
+
+        #--Pro or QC--
+        P_selection=1
+        def p_type():
+            global P_selection
+            P_selection=v.get()
+            for item in Hr_Count.get_children():
+                Hr_Count.delete(item)
+
+        v = IntVar()
+        H_Pro_L_PType=Label(H_Pro_w,text="Production Type",fg="#515056",bg="white",bd=0, font=("Calibri", 10, "bold"))
+        H_Pro_L_PType.place(x=480,y=30)
+
+        H_Pro_R_PType=Radiobutton(H_Pro_w,text="Production",variable=v,value=1,bg="white",command=p_type)
+        H_Pro_R_PType.place(x=480,y=50)
+
+        H_Pro_R_QType=Radiobutton(H_Pro_w,text="QC",variable=v,value=2,bg="white",command=p_type)
+        H_Pro_R_QType.place(x=580,y=50)
+
+        v.set(1)
+        
+        #--Submit--
+
+        def view_Data():
+            
+            global P_selection
+            P_Date_H_Pro= H_Pro_E_Date.get()
+            T_Name_H_Pro=H_Pro_C_Teamname.get()
+            
+            if P_Date_H_Pro==dt.datetime.today().strftime('%d-%m-%Y'):
+                DB_Name.remove("Office_Inn_DB.db")
+
+            if len(P_Date_H_Pro)<1 or len(T_Name_H_Pro)<1:
+                
+                messagebox.showerror("Data Missing", "Select Team Name and Process Date")
+                H_Pro_w.focus_force()
+                return False
+
+            for item in Hr_Count.get_children():
+                Hr_Count.delete(item)
+            A_Production = pd.DataFrame()
+            if P_selection==1:
+                
+                #print(DB_Name)
+                for DB in DB_Name:
+                    #print(DB)
+                    Data_Base=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'+'\\'+DB
+                    try:
+                        conn = sqlite3.connect(Data_Base,timeout=45,uri=True)
+                        query1=""" select  TRANSACTIONS,USERID,  
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) < 8 then A_Count ELSE 0 end) as "Less than 8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 8 then A_Count ELSE 0 end) as "8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 9 then A_Count ELSE 0 end) as "9",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 10 then A_Count ELSE 0 end) as "10",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 11 then A_Count ELSE 0 end) as "11",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 12 then A_Count ELSE 0 end) as "12",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 13 then A_Count ELSE 0 end) as "13",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 14 then A_Count ELSE 0 end) as "14",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 15 then A_Count ELSE 0 end) as "15",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 16 then A_Count ELSE 0 end) as "16",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 17 then A_Count ELSE 0 end) as "17",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) > 17  then A_Count ELSE 0 end) as "Greater than 17",
+                            sum(case when END_TIME is Null then A_Count ELSE 0 end) as "Correction",
+                            sum(A_count) as "Total Count"
+                            from TblProduction where P_Date= '"""+ P_Date_H_Pro +"""' and TRANSACTION_TEAM= '"""+ T_Name_H_Pro +"""' and A_STATUS<> "Diarised" and P_TYPE="Production" group by TRANSACTIONS,USERID ORDER BY USERID ASC 
+                        """
+                        df = pd.read_sql_query(query1, conn)
+                        A_Production = A_Production.append(df)
+                        conn.close()  
+                    except:
+                        conn.close()
+                        messagebox.showerror("Database Crash","Office Inn crashed, Please reopen the tool")
+                        H_Pro_w.destroy()
+                        return False
+                        
+
+            elif P_selection==2:
+                for DB in DB_Name:
+                    Data_Base=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'+'\\'+DB
+                    try:
+                        conn = sqlite3.connect(Data_Base,timeout=45,uri=True)
+                        query1=""" select  TRANSACTIONS,USERID,  
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) < 8 then A_Count ELSE 0 end) as "Less than 8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 8 then A_Count ELSE 0 end) as "8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 9 then A_Count ELSE 0 end) as "9",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 10 then A_Count ELSE 0 end) as "10",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 11 then A_Count ELSE 0 end) as "11",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 12 then A_Count ELSE 0 end) as "12",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 13 then A_Count ELSE 0 end) as "13",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 14 then A_Count ELSE 0 end) as "14",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 15 then A_Count ELSE 0 end) as "15",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 16 then A_Count ELSE 0 end) as "16",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 17 then A_Count ELSE 0 end) as "17",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) > 17  then A_Count ELSE 0 end) as "Greater than 17",
+                            sum(case when END_TIME is Null then A_Count ELSE 0 end) as "Correction",
+                            sum(A_count) as "Total Count"
+                            from TblProduction where P_Date= '"""+ P_Date_H_Pro +"""' and TRANSACTION_TEAM= '"""+ T_Name_H_Pro +"""'  and P_TYPE="QC" group by TRANSACTIONS,USERID ORDER BY USERID ASC 
+                        """
+                        df = pd.read_sql_query(query1, conn)
+                        A_Production = A_Production.append(df)
+                        conn.close()
+                    except:
+                        conn.close()
+                        messagebox.showerror("Database Issue","Office Inn crashed, Please reopen the tool")
+                        H_Pro_w.destroy()
+                        return False  
+                     
+                  
+            if len(A_Production)==0:
+             messagebox.showerror("Alert","No Data found")
+             H_Pro_w.focus_force()
+             return False
+         
+            A_Production = A_Production.values.tolist() 
+            for row in A_Production:
+                Hr_Count.insert("", END, values=row) 
+            
+        def Export_Data():
+            global P_selection
+            P_Date_H_Pro= H_Pro_E_Date.get()
+            T_Name_H_Pro=H_Pro_C_Teamname.get()
+
+            if len(P_Date_H_Pro)<1 or len(T_Name_H_Pro)<1:
+                messagebox.showerror("Data Missing", "Select Team Name and Process Date")
+                H_Pro_w.focus_force()
+                return False
+            A_Production1 = pd.DataFrame()
+            if P_selection==1:
+                for DB in DB_Name:
+                    Data_Base=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'+'\\'+DB
+                    try:
+                        conn = sqlite3.connect(Data_Base,timeout=45,uri=True)
+                        query1=""" select  TRANSACTIONS,USERID,  
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) < 8 then A_Count ELSE 0 end) as "Less than 8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 8 then A_Count ELSE 0 end) as "8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 9 then A_Count ELSE 0 end) as "9",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 10 then A_Count ELSE 0 end) as "10",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 11 then A_Count ELSE 0 end) as "11",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 12 then A_Count ELSE 0 end) as "12",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 13 then A_Count ELSE 0 end) as "13",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 14 then A_Count ELSE 0 end) as "14",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 15 then A_Count ELSE 0 end) as "15",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 16 then A_Count ELSE 0 end) as "16",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 17 then A_Count ELSE 0 end) as "17",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) > 17  then A_Count ELSE 0 end) as "Greater than 17",
+                            sum(case when END_TIME is Null then A_Count ELSE 0 end) as "Correction",
+                            sum(A_count) as "Total Count"
+                            from TblProduction where P_Date= '"""+ P_Date_H_Pro +"""' and TRANSACTION_TEAM= '"""+ T_Name_H_Pro +"""' and A_STATUS<> "Diarised" and P_TYPE="Production" group by TRANSACTIONS,USERID ORDER BY USERID ASC 
+                        """
+                        df = pd.read_sql_query(query1, conn)
+                        A_Production1 = A_Production1.append(df)
+                        conn.close()
+                    except:
+                        conn.close()
+                        messagebox.showerror("System Crash","Office Inn crashed, Please reopen the tool")
+                        H_Pro_w.destroy()
+                        return False
+            elif P_selection==2:
+                for DB in DB_Name:
+                    Data_Base=r'\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Team Database\Office Inn'+'\\'+DB
+                    try:
+                        conn = sqlite3.connect(Data_Base,timeout=45,uri=True)
+                        query1=""" select  TRANSACTIONS,USERID,  
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) < 8 then A_Count ELSE 0 end) as "Less than 8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 8 then A_Count ELSE 0 end) as "8",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 9 then A_Count ELSE 0 end) as "9",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 10 then A_Count ELSE 0 end) as "10",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 11 then A_Count ELSE 0 end) as "11",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 12 then A_Count ELSE 0 end) as "12",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 13 then A_Count ELSE 0 end) as "13",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 14 then A_Count ELSE 0 end) as "14",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 15 then A_Count ELSE 0 end) as "15",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 16 then A_Count ELSE 0 end) as "16",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) = 17 then A_Count ELSE 0 end) as "17",
+                            sum(case when cast(substr(END_TIME, 11, 3) as decimal) > 17  then A_Count ELSE 0 end) as "Greater than 17",
+                            sum(case when END_TIME is Null then A_Count ELSE 0 end) as "Correction",
+                            sum(A_count) as "Total Count"
+                            from TblProduction where P_Date= '"""+ P_Date_H_Pro +"""' and TRANSACTION_TEAM= '"""+ T_Name_H_Pro +"""'  and P_TYPE="QC" group by TRANSACTIONS,USERID ORDER BY USERID ASC 
+                        """
+                        df = pd.read_sql_query(query1, conn)
+                        A_Production1 = A_Production1.append(df)
+                        conn.close()
+                    except:
+                        conn.close()
+                        messagebox.showerror("System Crash","Office Inn crashed, Please reopen the tool")
+                        H_Pro_w.destroy()
+                        return False
+
+            if len(rows)==0:
+                messagebox.showerror("Alert","No Data found")
+                H_Pro_w.focus_force()
+                return False
+            else:
+                #df1 = pd.read_sql_query(query, conn)
+                messagebox.showinfo('Completed','Report Created!')
+                H_Pro_w.focus_force()
+                xw.view(A_Production1, table=False)
+            conn.close()
+            
+            
+
+        S_button=Button(H_Pro_w,text=">", command=view_Data,font=("Bauhaus 93", 10,"bold"),bg='#00728F',fg='white',cursor="hand2")
+        S_button.place(x=670,y=50,width=30)
+
+        Export_button=Button(H_Pro_w,text="Export Report", command=Export_Data,width=12,height=1,bg="#00728F",foreground="white", font=("Calibri", 11,"bold"),borderwidth=3,cursor="hand2" )
+        Export_button.place(x=750,y=45)
+
+        #---Data in Tree--
+        Hr_Count=Treeview(H_Pro_w,columns=(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16),show='headings',height = 16)
+        Hr_Count.column("# 1",anchor=W, stretch=NO,width=150+20+20 )
+        Hr_Count.heading(1, text="Transactions",anchor=W)
+
+        Hr_Count.column("# 2",anchor=W, stretch=NO, width=70 )
+        Hr_Count.heading(2, text="User ID",anchor=W)
+
+        Hr_Count.column("# 3",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(3, text="<8:00",anchor=CENTER)
+        
+        Hr_Count.column("# 4",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(4, text="8:00",anchor=CENTER)
+
+        Hr_Count.column("# 5",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(5, text="9:00",anchor=CENTER)
+
+        Hr_Count.column("# 6",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(6, text="10:00",anchor=CENTER)
+
+        Hr_Count.column("# 7",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(7, text="11:00",anchor=CENTER)
+
+        Hr_Count.column("# 8",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(8, text="12:00",anchor=CENTER)
+
+        Hr_Count.column("#9",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(9, text="13:00",anchor=CENTER)
+
+        Hr_Count.column("# 10",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(10, text="14:00",anchor=CENTER)
+
+        Hr_Count.column("# 11",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(11, text="15:00",anchor=CENTER)
+
+        Hr_Count.column("# 12",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(12, text="16:00",anchor=CENTER)
+
+        Hr_Count.column("# 13",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(13, text="17:00",anchor=CENTER)
+
+        Hr_Count.column("# 14",anchor=CENTER, stretch=NO, width=70)
+        Hr_Count.heading(14, text=">17:00",anchor=CENTER)
+
+        Hr_Count.column("# 15",anchor=CENTER, stretch=NO, width=80)
+        Hr_Count.heading(15, text="Correction",anchor=CENTER)
+
+        Hr_Count.column("# 16",anchor=CENTER, stretch=NO, width=95)
+        Hr_Count.heading(16, text="Total Count",anchor=W)
+        
+        Hr_Count.place(x=8,y=105)
+        style = ttk.Style()
+        style.theme_use("vista")
+        style.configure('Treeview.Heading',background='#9e9d9d',foreground='Black',font=("Calibri", 11, "bold"))
+        vsb1 = ttk.Scrollbar(Hr_Count, orient="vertical", command=Hr_Count.yview)
+        vsb1.place(x=562+697 , y=2, height=343)
+        Hr_Count.configure(yscrollcommand=vsb1.set)
+
+        def Dash_avoid():
+            H_Pro_w.destroy()
+            Officeinn.focus_force()
+            Clock_Button.config(state='normal',bg="white",font=("Calibri", 11,"bold"))
+
+       #H_Pro_w.grab_set() 
+        H_Pro_w.protocol("WM_DELETE_WINDOW", Dash_avoid)
+
+    ######################################################################################################################################################################################################################################################
+    #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ######################################################################################################################################################################################################################################################
+    Quality_Button = Button(frame1,text="Quality",width=12,height=1,bg="#00728F",foreground="white", font=("Calibri", 11,"bold"),borderwidth=3,command=Qc_Page,cursor="hand2" )
+    Quality_Button.place(x=700,y=9)                           
+    Dashboard_Button = Button(frame1,text="Dashboard",width=12,height=1,bg="#00728F",foreground="white", font=("Calibri", 11,"bold"),borderwidth=3,command=dashboard,cursor="hand2" )
+    Dashboard_Button.place(x=850,y=9)
+    NP_Button = Button(frame1,text="Non Production",width=12,height=1,bg="#00728F",foreground="white", font=("Calibri", 11,"bold"),borderwidth=3,command=Non_Producation,cursor="hand2")
+    NP_Button.place(x=1000,y=9)
+
+    if A_Access=="Yes":
+        Admin = Button(frame1,text="Admin",width=12,height=1,bg="#00728F",foreground="white", font=("Calibri", 11,"bold"),borderwidth=3,command=Admin,cursor="hand2" )
+        #Admin.place(x=550,y=9)
+
+        ClockIcon = PhotoImage(file = r"\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Office Inn\clock.png")
+        Clock_Button = Button(frame1, image = ClockIcon,background='white',command=H_Producation,cursor="hand2" )
+        #Clock_Button.place(x=490,y=13)
+
+    HomeIcon = PhotoImage(file = r"\\ltsbr\data\common\Equiniti India Ops\Innovation Projects\Office Inn\Home.png")
+    Hme_Button = Button(frame1, image = HomeIcon,background='white',cursor="hand2" )
+
+    
+
+    
+    #----Quotes----
+    #sqliteConnection=sqlite3.connect(Data_Base)
+    #cursor=sqliteConnection.cursor()
+    S_Q="SELECT Quotes FROM Non_Production_Data ORDER BY RANDOM()LIMIT 1 "
+    rows=ViewQueryfun(S_Q,Data_Base_Support)
+    #cursor.execute(S_Q)
+    #rows = cursor.fetchall()
+    Quotes=rows[0][0]
+    #sqliteConnection.close
+    lb9 = Label(frame1,text=Quotes,fg="#515056",bg="white",bd=0, font=("Calibri", 11,"bold"),wraplength=730)
+    lb9.place(x=400,y=515)
+
+    Officeinn.protocol("WM_DELETE_WINDOW", Main_Window_Close)
+    Officeinn.mainloop()
+    
+    
+    
+    
+
+CheckWindow = WindowCheck()
+
+if "Office_Inn 1.5" in CheckWindow:
+    messagebox.showerror('Already Opened','This application is already opened! Please check')
+else:
+    Main_Function()
+######################################################################################################################################################################################################################################################
+######################################################################################################################################################################################################################################################
+######################################################################################################################################################################################################################################################
