@@ -1,0 +1,757 @@
+
+
+Sub Open_UserForm()
+    
+    User_N = LCase(Environ("Username"))
+    Set myrange = ThisWorkbook.Sheets("Master").Range("Users")
+    Set findcell = myrange.Find(What:=User_N)
+    
+    'Check user access
+    
+    If findcell Is Nothing Then
+       MsgBox "You do not have access for this application. Please check with your Teamleader", vbCritical, "Alert"
+       Exit Sub
+    End If
+
+    ThisWorkbook.Sheets("Home").Range("G13").Value = "a"
+    UserForm2.Show vbModeless
+If LCase(Environ("Username")) = "92mohas" Then
+        
+        ThisWorkbook.Sheets("Home").Range("G13").Value = "a"
+        ThisWorkbook.Sheets("Home").Range("I13").Value = "u"
+    Else
+        ThisWorkbook.Sheets("Home").Range("G13").Value = LCase(Environ("Username"))
+        ThisWorkbook.Sheets("Home").Range("I13").Value = LCase(Environ("Username"))
+    End If
+
+    
+End Sub
+
+
+
+
+'Option Explicit
+
+Private Sub CommandButton1_Click()
+
+    Dim mypath As String
+    Dim myfile As String
+    Dim fso As Object
+    Dim wk As Workbook
+    Dim ProjectID As String
+    Dim lastrow As Long
+    Dim r As Range
+    Dim startdate As String
+    Dim enddate As String
+    
+    Application.ScreenUpdating = False
+    
+    If Me.TextBox1.Value = "" Or Me.ComboBox1.Value = "" Or Me.TextBox5.Value = "" Then
+        MsgBox "Please fill requied Fields", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    ProjectID = UCase(Environ("username")) & Format(Now, "ddmmyyhhmm")
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    startdate = CStr(Me.DTPicker1.Value)
+    enddate = CStr(Me.DTPicker2.Value)
+    P_enddate = CStr(UserForm2.DTPicker02.Value)
+    mypath = ThisWorkbook.Path & "\Do not open"
+    
+    If Not fso.FolderExists(mypath) Then
+        fso.CreateFolder mypath
+    End If
+    
+    myfile = mypath & "\" & LCase(Environ("username")) & ".xlsx"
+    
+    If Not fso.FileExists(myfile) Then
+        Set wk = Workbooks.Add
+        wk.SaveAs myfile
+    Else
+        Set wk = Workbooks.Open(mypath & "\" & LCase(Environ("username")) & ".xlsx")
+    End If
+    
+    wk.Sheets("Sheet2").Select
+    
+    Range("A" & Rows.Count).End(xlUp)(2).Select
+    
+    ActiveCell.Value = Me.TitleLabel.Caption
+    ActiveCell.Offset(0, 1).Value = Me.TextBox1.Value
+    ActiveCell.Offset(0, 2).Value = Me.TextBox2.Value
+    ActiveCell.Offset(0, 3).Value = Me.ComboBox1.Value
+    ActiveCell.Offset(0, 4).Value = CDate(startdate)
+    ActiveCell.Offset(0, 5).Value = CDate(enddate)
+    ActiveCell.Offset(0, 6).Value = Me.TextBox5.Value
+    ActiveCell.Offset(0, 7).Value = UCase(Environ("username"))
+    ActiveCell.Offset(0, 8).Value = UserForm2.TextBox1.Value
+    ActiveCell.Offset(0, 9).Value = CDate(P_enddate)
+    ActiveCell.Offset(0, 10).Value = UserForm2.ComboBox8.Value
+    ActiveCell.Offset(0, 11).Formula = "=IF(K" & ActiveCell.Row & "=""Completed*"",""G"",IF(J" & ActiveCell.Row & "<TODAY(),""R"",IF(NETWORKDAYS.INTL(TODAY(),J" & ActiveCell.Row & ",1)<=3,""A"",""G"")))"
+    Range("A1").Select
+    
+    wk.Save
+    wk.Close False
+        
+    MsgBox "Data has been added", vbInformation, "Success"
+    
+    Unload Me
+    
+    UserForm2.Show
+    
+    Application.ScreenUpdating = True
+    'AA = UserForm2.ListBox1.Value
+    UserForm2.ListBox1.ListIndex = -1
+End Sub
+
+
+Private Sub TextBox5_Change()
+If IsNumeric(Me.TextBox5.Value) = False And Me.TextBox5.Value <> "" Then
+    MsgBox "Only Numbers Allowed", vbCritical, "Alert"
+    Me.TextBox5.Value = ""
+    Exit Sub
+End If
+End Sub
+
+Private Sub UserForm_Initialize()
+
+   Me.DTPicker1.Value = Format(Date, "dd/mm/yyyy")
+   Me.DTPicker2.Value = Format(Date, "dd/mm/yyyy")
+   Me.ComboBox1.List = Array("Completed", "In Progress")
+    
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then
+        UserForm2.Show vbModeless
+        Unload Me
+        UserForm2.ListBox1.ListIndex = -1
+        End If
+    UserForm2.ListBox1.ListIndex = -1
+End Sub
+
+
+
+
+
+
+
+'Private Sub CheckBox1_AfterUpdate()
+'
+'    Dim i As Long
+'
+'    If Me.CheckBox1.Value = True Then
+'        Me.ComboBox1.BackColor = vbWindowBackground
+'        Me.ComboBox1.Enabled = True
+'    Else
+'        For i = 1 To 9
+'            Me.Controls("ComboBox" & i).Value = ""
+'        Next i
+'        Me.TextBox1.Value = ""
+'        Me.TextBox6.Value = ""
+'        Me.TextBox8.Value = ""
+'        Me.TextBox9.Value = ""
+'        Me.ComboBox1.BackColor = -2147483633
+'        Me.ComboBox1.Enabled = False
+'    End If
+'
+'End Sub
+
+Private Sub ComboBox1_AfterUpdate()
+
+    Dim wk As Workbook
+    Dim Sh As Worksheet
+    Dim r As Range
+    Dim lrow As Long
+    
+    Application.ScreenUpdating = False
+    
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not open\" & LCase(Environ("username")) & ".xlsx")
+    
+    Set Sh = wk.Sheets(1)
+    
+    Sh.Select
+    
+    lrow = Sh.Range("A" & Rows.Count).End(xlUp).Row
+    
+    For Each r In Sh.Range("S2:S" & lrow)
+        If r.Value = Me.ComboBox1.Value Then
+            Me.TextBox1.Value = Cells(r.Row, 2).Value
+            Me.ComboBox2.Value = Cells(r.Row, 3).Value
+            Me.ComboBox3.Value = Cells(r.Row, 4).Value
+            Me.DTPicker01.Value = Format(Cells(r.Row, 5).Value, "dd/mm/yyyy")
+            Me.DTPicker02.Value = Format(Cells(r.Row, 6).Value, "dd/mm/yyyy")
+            Me.ComboBox4.Value = Cells(r.Row, 7).Value
+            Me.DTPicker03.Value = Format(Cells(r.Row, 8).Value, "dd/mm/yyyy")
+            Me.DTPicker04.Value = Format(Cells(r.Row, 9).Value, "dd/mm/yyyy")
+            Me.ComboBox5.Value = Cells(r.Row, 10).Value
+            Me.TextBox6.Value = Cells(r.Row, 11).Value
+            Me.DTPicker05.Value = Format(Cells(r.Row, 12).Value, "dd/mm/yyyy")
+            Me.ComboBox6.Value = Cells(r.Row, 13).Value
+            Me.ComboBox7.Value = Cells(r.Row, 14).Value
+            Me.TextBox8.Value = Cells(r.Row, 15).Value
+            Me.ComboBox8.Value = Cells(r.Row, 16).Value
+            Me.ComboBox9.Value = Cells(r.Row, 17).Value
+            Me.TextBox9.Value = Cells(r.Row, 18).Value
+            Exit For
+        End If
+    Next r
+    
+    wk.Close False
+    
+    Application.ScreenUpdating = True
+    
+End Sub
+
+Private Sub CheckBox1_Click()
+    UserForm2.ListBox1.ListIndex = -1
+End Sub
+
+Private Sub ComboBox8_Change()
+    If Me.ComboBox8.Value = "Completed" Then
+        Me.DTPicker04.Enabled = True
+    Else
+        Me.DTPicker04.Enabled = False
+    End If
+End Sub
+
+Private Sub CommandButton1_Click()
+
+    Dim wk As Workbook
+    Dim r As Range
+    Dim lastrow As Long
+    Dim Sh As Worksheet
+    Dim iCount As Integer
+    
+    Application.ScreenUpdating = False
+     
+    If Me.ListBox1.ListCount > 0 Then
+        MsgBox "Already Data loaded", vbCritical
+        Exit Sub
+    End If
+    
+    Me.ListBox1.ColumnCount = 2
+    Me.ListBox1.ColumnWidths = "70,100"
+    Me.ListBox1.AddItem
+    Me.ListBox1.List(0, 0) = "Project Code"
+    Me.ListBox1.List(0, 1) = "Project Name"
+   
+    iCount = 1
+    'lastrow1 = 1
+    'Me.ComboBox1.Clear
+    folder_N = ThisWorkbook.Path & "\Do not open\"
+    File_N = Dir(folder_N & ".")
+    Do Until File_N = ""
+        Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not open\" & File_N)
+        'Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not open\" & LCase(Environ("username")) & ".xlsx")
+        Set Sh = wk.Sheets("Sheet1")
+        Sh.Select
+        Cnt1 = Sh.UsedRange.Cells.Count
+        If Cnt1 <= 19 Then
+            File_N1 = LCase(Environ("username")) & ".xlsx"
+            If File_N = File_N1 Then
+                MsgBox "No Projects found in your Production report!!", vbCritical, "Alert"
+            End If
+            'wk.Close
+            GoTo nxt1
+            'Exit Sub
+        End If
+      
+    lastrow = Sh.Range("A" & Rows.Count).End(xlUp).Row
+    
+    iCount = Me.ListBox1.ListCount
+    
+    For Each r In Sh.Range("S2:S" & lastrow)
+'        With Me.ComboBox1
+'            .AddItem r.Value
+'        End With
+         
+         With Me.ListBox1
+            .AddItem
+            .List(iCount, 0) = r.Value
+           
+            .List(iCount, 1) = Cells(r.Row, 2).Value
+        End With
+        iCount = iCount + 1
+    Next r
+nxt1:
+    'lastrow1 = lastrow
+    wk.Close False
+    File_N = Dir()
+    
+    Loop
+    Application.ScreenUpdating = True
+
+End Sub
+
+Private Sub CommandButton2_Click()
+
+    If Me.ComboBox1.Value = "" Then
+        MsgBox "You can not create task for new project", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    UserForm1.Show vbModeless
+    UserForm2.Hide
+    
+    UserForm1.TitleLabel.Caption = Me.ComboBox1.Value
+
+End Sub
+
+Private Sub CommandButton3_Click()
+
+
+
+If Me.TextBox1.Value = "" Or Me.TextBox6.Value = "" Then
+    MsgBox "Please fill in all the required fields", vbCritical, "Alert"
+    Exit Sub
+End If
+
+
+For j = 2 To 8
+If Me.Controls("ComboBox" & j).Value = "" Then
+    MsgBox "Please fill in all the required fields", vbCritical, "Alert"
+    Exit Sub
+End If
+Next
+
+
+
+If Me.ComboBox3.Value = "EUC" Then
+    If Me.TextBox8.Value = "" Then
+        MsgBox "Please fill FT Saved fields", vbCritical, "Alert"
+        Exit Sub
+    End If
+End If
+
+
+    Dim mypath As String
+    Dim myfile As String
+    Dim fso As Object
+    Dim wk As Workbook
+    Dim ProjectID As String
+    Dim lastrow As Long
+    Dim r As Range
+    Dim Date1, Date2, Date3, Date4, Date5 As String
+    
+    Application.ScreenUpdating = False
+    
+'    If Me.OptionButton1.Value = "" Or Me.OptionButton2.Value = "" Then
+'        MsgBox "Please Select task option", vbCritical, "Alert"
+'    Exit Sub
+'    End If
+    
+    
+    ProjectID = UCase(Environ("username")) & Format(Now, "ddmmyyhhmm")
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    mypath = ThisWorkbook.Path & "\Do not open"
+    
+    Date1 = CStr(Me.DTPicker01.Value)
+    Date2 = CStr(Me.DTPicker02.Value)
+    Date3 = CStr(Me.DTPicker03.Value)
+    Date4 = CStr(Me.DTPicker04.Value)
+    Date5 = CStr(Me.DTPicker05.Value)
+    
+    If Not fso.FolderExists(mypath) Then
+        fso.CreateFolder mypath
+    End If
+    
+    myfile = mypath & "\" & LCase(Environ("username")) & ".xlsx"
+    
+    If Not fso.FileExists(myfile) Then
+        Set wk = Workbooks.Add
+        wk.SaveAs myfile
+    Else
+        Set wk = Workbooks.Open(mypath & "\" & LCase(Environ("username")) & ".xlsx")
+    End If
+    
+    wk.Sheets("Sheet1").Select
+    
+    lastrow = Range("A" & Rows.Count).End(xlUp).Row
+    
+    
+    P_ID = Me.ListBox1.Value
+    Set myrange = wk.Sheets("Sheet1").Range("S:S")
+    Set findcell_1 = myrange.Find(What:=P_ID)
+        On Error Resume Next
+        LL = Len(findcell_1.Value)
+        On Error GoTo 0
+    If LL = 0 Then
+        Range("A" & Rows.Count).End(xlUp)(2).Select
+    Else
+        For Each r In Range("S2:S" & lastrow)
+            If r.Value = Me.ListBox1.Value Then Cells(r.Row, 1).Select: Exit For
+        Next r
+    End If
+    
+    On Error Resume Next
+    'Range("A" & lastrow + 1).Select
+    ActiveCell.Value = LCase(Environ("username"))
+    ActiveCell.Offset(0, 1).Value = Me.TextBox1.Value
+    ActiveCell.Offset(0, 2).Value = Me.ComboBox2.Value
+    ActiveCell.Offset(0, 3).Value = Me.ComboBox3.Value
+    ActiveCell.Offset(0, 4).Value = CDate(Date1)
+    ActiveCell.Offset(0, 5).Value = CDate(Date2)
+    ActiveCell.Offset(0, 6).Value = Me.ComboBox4.Value
+    ActiveCell.Offset(0, 7).Value = CDate(Date3)
+    ActiveCell.Offset(0, 8).Value = CDate(Date4)
+    ActiveCell.Offset(0, 9).Value = Me.ComboBox5.Value
+    ActiveCell.Offset(0, 10).Value = StrConv(Me.TextBox6.Value, vbProperCase)
+    ActiveCell.Offset(0, 11).Value = CDate(Date5)
+    ActiveCell.Offset(0, 12).Value = Me.ComboBox6.Value
+    ActiveCell.Offset(0, 13).Value = Me.ComboBox7.Value
+    ActiveCell.Offset(0, 14).Value = Me.TextBox8.Value
+    ActiveCell.Offset(0, 15).Value = Me.ComboBox8.Value
+    ActiveCell.Offset(0, 16).Value = Me.ComboBox9.Value
+    ActiveCell.Offset(0, 17).Value = Me.TextBox9.Value
+    ActiveCell.Offset(0, 18).Value = ProjectID
+    ActiveCell.Offset(0, 19).Formula = "=IF(TRIM(P" & ActiveCell.Row & ")=""Completed"",""G"",IF(F" & ActiveCell.Row & "<TODAY(),""R"",IF(NETWORKDAYS.INTL(TODAY(),F" & ActiveCell.Row & ",1)<=3,""A"",""G"")))"
+    On Error GoTo 0
+    
+    Range("A1").Select
+    
+    wk.Save
+    wk.Close False
+    
+    If LL = 0 Then
+        MsgBox "Data has been added", vbInformation, "Success"
+    Else
+        MsgBox "Data has been updated", vbInformation, "Success"
+    End If
+    
+    Me.TextBox1.Value = ""
+    Me.ComboBox2.Value = ""
+    Me.ComboBox3.Value = ""
+    Me.DTPicker01.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.DTPicker02.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.ComboBox4.Value = ""
+    Me.DTPicker03.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.DTPicker04.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.ComboBox5.Value = ""
+    Me.TextBox6.Value = ""
+    Me.DTPicker05.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.ComboBox6.Value = ""
+    Me.ComboBox7.Value = ""
+    Me.TextBox8.Value = ""
+    Me.ComboBox8.Value = ""
+    Me.ComboBox9.Value = ""
+    Me.TextBox9.Value = ""
+    Me.ListBox1.Clear
+    
+    'Unload Me
+    
+    Application.ScreenUpdating = True
+
+End Sub
+
+Private Sub CommandButton4_Click()
+        
+    Application.DisplayAlerts = False
+    Application.ScreenUpdating = False
+    
+    ThisWorkbook.Sheets("Projects").Visible = True
+    ThisWorkbook.Sheets("Tasks").Visible = True
+    ThisWorkbook.Sheets("Summary").Visible = True
+    
+    Dim wb As Workbook
+    Dim sh1 As Worksheet
+    Dim sh2 As Worksheet
+    
+    If ThisWorkbook.Sheets("Home").Range("G13").Value <> "a" Then
+        
+        '---For Particular User---
+
+        Set wb = Workbooks.Open(ThisWorkbook.Path & "\Do not open\" & LCase(Environ("username")) & ".xlsx")
+        Set sh1 = wb.Sheets(1)
+        Set sh2 = wb.Sheets(2)
+        ThisWorkbook.Sheets("projects").Cells.Clear
+        ThisWorkbook.Sheets("Tasks").Cells.Clear
+        Cnt1 = sh1.UsedRange.Cells.Count
+        Cnt2 = sh2.UsedRange.Cells.Count
+        If Cnt1 <= 19 Then
+            MsgBox "No Projects found in the Production report!!", vbCritical, "Alert"
+            wb.Close
+            ThisWorkbook.Sheets("Projects").Visible = False
+            ThisWorkbook.Sheets("Tasks").Visible = False
+            ThisWorkbook.Sheets("Summary").Visible = False
+            Exit Sub
+        End If
+        
+'        If Cnt2 <= 7 Then
+'            MsgBox "No Task's found in Producation report!! Please add Task to refresh!!", vbCritical, "Alert"
+'            wb.Close
+'            ThisWorkbook.Sheets("Projects").Visible = False
+'            ThisWorkbook.Sheets("Tasks").Visible = False
+'            ThisWorkbook.Sheets("Summary").Visible = False
+'            Exit Sub
+'        End If
+        sh1.UsedRange.Copy Destination:=ThisWorkbook.Sheets("projects").Range("A1")
+        sh2.UsedRange.Copy Destination:=ThisWorkbook.Sheets("Tasks").Range("A1")
+        wb.Close
+    Else
+        '---For all Users---
+
+        folder_N = ThisWorkbook.Path & "\Do not open\"
+        File_N = Dir(folder_N & ".")
+        ThisWorkbook.Sheets("projects").Cells.Clear
+        ThisWorkbook.Sheets("Tasks").Cells.Clear
+        Do Until File_N = ""
+            Set wb = Workbooks.Open(ThisWorkbook.Path & "\Do not open\" & File_N)
+            Set sh1 = wb.Sheets(1)
+            Set sh2 = wb.Sheets(2)
+            
+            Cnt1 = sh1.UsedRange.Cells.Count
+            Cnt2 = sh2.UsedRange.Cells.Count
+            
+            If Cnt1 <= 19 Or Cnt2 <= 7 Then
+                'MsgBox "No data found in Producation report!! Please add producation count to refresh!!", vbCritical, "Alert"
+                'wb.Close
+                GoTo nxt_f
+            End If
+            
+            LR1 = ThisWorkbook.Sheets("projects").Range("A" & Rows.Count).End(xlUp).Row
+            LR2 = ThisWorkbook.Sheets("Tasks").Range("A" & Rows.Count).End(xlUp).Row
+            
+            If LR1 = 1 Then
+                sh1.UsedRange.Copy Destination:=ThisWorkbook.Sheets("projects").Range("A" & LR1)
+                sh2.UsedRange.Copy Destination:=ThisWorkbook.Sheets("Tasks").Range("A" & LR2)
+            Else
+                sh1.UsedRange.Copy Destination:=ThisWorkbook.Sheets("projects").Range("A" & LR1 + 1)
+                sh2.UsedRange.Copy Destination:=ThisWorkbook.Sheets("Tasks").Range("A" & LR2 + 1)
+            End If
+nxt_f:
+            wb.Close
+            File_N = Dir()
+        Loop
+        Sheets("Projects").Select
+        Range("A1").AutoFilter Field:=1, Criteria1:="Username"
+        ActiveSheet.UsedRange.Offset(1, 0).SpecialCells(xlCellTypeVisible).Select
+        Selection.Delete
+        ActiveSheet.AutoFilterMode = False
+        
+        Sheets("Tasks").Select
+        Range("A1").AutoFilter Field:=1, Criteria1:="Project*"
+        ActiveSheet.UsedRange.Offset(1, 0).SpecialCells(xlCellTypeVisible).Select
+        Selection.Delete
+        ActiveSheet.AutoFilterMode = False
+    End If
+    
+    ThisWorkbook.Sheets("projects").Activate
+    lrow = ActiveSheet.Cells(Rows.Count, "A").End(xlUp).Row
+    lCol = ActiveSheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    ActiveSheet.ListObjects.Add(xlSrcRange, Range(Cells(1, 1), Cells(lrow, lCol)), , xlYes).Name = "Project_N"
+    ActiveSheet.Rows(1).Font.Color = vbBlack
+   
+    ThisWorkbook.Sheets("Tasks").Activate
+    lrow = ActiveSheet.Cells(Rows.Count, "A").End(xlUp).Row
+    lCol = ActiveSheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    ActiveSheet.ListObjects.Add(xlSrcRange, Range(Cells(1, 1), Cells(lrow, lCol)), , xlYes).Name = "Task_N"
+    ActiveSheet.Rows(1).Font.Color = vbBlack
+    
+    
+    
+    ActiveWorkbook.RefreshAll
+    
+    ThisWorkbook.Sheets("projects").Activate
+    ThisWorkbook.Sheets("projects").Range("A1").Select
+    ThisWorkbook.Sheets("Tasks").Activate
+    ThisWorkbook.Sheets("Tasks").Range("A1").Select
+    ThisWorkbook.Sheets("Summary").Activate
+    ThisWorkbook.Sheets("Summary").Range("A1").Select
+    ThisWorkbook.Sheets("Summary").UsedRange.Columns.AutoFit
+    
+    ActiveWorkbook.RefreshAll
+    MsgBox "Report Generated", vbInformation, "Completed"
+    
+    Me.Hide
+
+End Sub
+
+Private Sub CommandButton5_Click()
+    Me.TextBox1.Value = ""
+    Me.ComboBox2.Value = ""
+    Me.ComboBox3.Value = ""
+    Me.DTPicker01.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.DTPicker02.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.ComboBox4.Value = ""
+    Me.DTPicker03.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.DTPicker04.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.ComboBox5.Value = ""
+    Me.TextBox6.Value = ""
+    Me.DTPicker05.Value = Format("01/01/2021", "dd/mm/yyyy")
+    Me.ComboBox6.Value = ""
+    Me.ComboBox7.Value = ""
+    Me.TextBox8.Value = ""
+    Me.ComboBox8.Value = ""
+    Me.ComboBox9.Value = ""
+    Me.TextBox9.Value = ""
+    Me.ListBox1.Clear
+    MsgBox "Refresh Completed", vbInformation, "Completed"
+End Sub
+
+Private Sub DTPicker02_Change()
+If Me.DTPicker01.Value > Me.DTPicker02 Then
+    MsgBox "Please check the Proposal Start and End date", vbCritical, "Alert"
+    Me.DTPicker02.Value = "1/1/2021"
+    Exit Sub
+End If
+End Sub
+Private Sub DTPicker04_Change()
+If Me.DTPicker03.Value > Me.DTPicker04 Then
+    MsgBox "Please check the actual start and end date", vbCritical, "Alert"
+    Me.DTPicker04.Value = "1/1/2021"
+    Exit Sub
+End If
+End Sub
+Private Sub DTPicker05_Change()
+If Me.DTPicker05.Value > Me.DTPicker01.Value Then
+    MsgBox "Please check the Requested date", vbCritical, "Alert"
+    Me.DTPicker05.Value = "1/1/2021"
+    Exit Sub
+End If
+End Sub
+
+
+Private Sub ListBox1_Click()
+'UserForm2.ListBox1.ListIndex = -1
+aa = UserForm2.ListBox1.Value
+If Me.ListBox1.Value = "Project Code" Then Exit Sub
+
+    Dim wk As Workbook
+    Dim Sh As Worksheet
+    Dim r As Range
+    Dim lrow As Long
+    
+    Application.ScreenUpdating = False
+    
+    BB = InStr(LCase(Left(aa, 7)), "balav")
+    SS = InStr(LCase(Left(aa, 7)), "murus")
+    
+    If BB > 0 Or SS > 0 Then
+        F_Name = LCase(Left(aa, 7)) & "1" & ".xlsx"
+    Else
+        F_Name = LCase(Left(aa, 7)) & ".xlsx"
+    End If
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not open\" & F_Name)
+    
+    Set Sh = wk.Sheets(1)
+    
+    Sh.Select
+    
+    lrow = Sh.Range("A" & Rows.Count).End(xlUp).Row
+    
+    For Each r In Sh.Range("S2:S" & lrow)
+        aa = Me.ListBox1.Value
+        If r.Value = Me.ListBox1.Value Then
+            Me.TextBox1.Value = Cells(r.Row, 2).Value
+            Me.ComboBox2.Value = Cells(r.Row, 3).Value
+            Me.ComboBox3.Value = Cells(r.Row, 4).Value
+            Me.DTPicker01.Value = Format(Cells(r.Row, 5).Value, "dd/mm/yyyy")
+            Me.DTPicker02.Value = Format(Cells(r.Row, 6).Value, "dd/mm/yyyy")
+            Me.ComboBox4.Value = Cells(r.Row, 7).Value
+            Me.DTPicker03.Value = Format(Cells(r.Row, 8).Value, "dd/mm/yyyy")
+            Me.DTPicker04.Value = Format(Cells(r.Row, 9).Value, "dd/mm/yyyy")
+            Me.ComboBox5.Value = Cells(r.Row, 10).Value
+            Me.TextBox6.Value = Cells(r.Row, 11).Value
+            Me.DTPicker05.Value = Format(Cells(r.Row, 12).Value, "dd/mm/yyyy")
+            Me.ComboBox6.Value = Cells(r.Row, 13).Value
+            Me.ComboBox7.Value = Cells(r.Row, 14).Value
+            Me.TextBox8.Value = Cells(r.Row, 15).Value
+            Me.ComboBox8.Value = Cells(r.Row, 16).Value
+            Me.ComboBox9.Value = Cells(r.Row, 17).Value
+            Me.TextBox9.Value = Cells(r.Row, 18).Value
+            Exit For
+        End If
+    Next r
+    
+    wk.Close False
+    
+    Application.ScreenUpdating = True
+    
+    If Me.ListBox1.Value = "" Then
+        MsgBox "You can not create task for new project", vbCritical, "Alert"
+        Exit Sub
+    End If
+    If Me.CheckBox1 = True Then
+    Me.Hide
+    UserForm1.Show vbModeless
+    'UserForm2.Hide
+    UserForm1.TitleLabel.Caption = Me.ListBox1.Value
+    End If
+End Sub
+
+
+
+Private Sub TextBox8_change()
+If IsNumeric(Me.TextBox8.Value) = False And Me.TextBox8.Value <> "" Then
+    MsgBox "Only numbers allowed", vbCritical, "Alert"
+    Me.TextBox8.Value = ""
+    Exit Sub
+End If
+End Sub
+
+Private Sub TextBox9_AfterUpdate()
+If Len(Me.TextBox9.Value) < 3 Then
+    MsgBox "Please fill the detailed remark", vbCritical, "Alert"
+    Exit Sub
+End If
+End Sub
+
+
+
+Private Sub UserForm_Initialize()
+    
+    'Me.ComboBox1.BackColor = -2147483633
+    'Me.ComboBox1.Enabled = False
+    
+    L_R1 = ThisWorkbook.Sheets("Master").Range("A" & Rows.Count).End(xlUp).Row
+    For i = 2 To L_R1
+    Me.ComboBox2.AddItem ThisWorkbook.Sheets("Master").Range("A" & i).Value
+    Next
+    'Me.ComboBox2.List = Array("Normal", "High")
+    
+    L_R2 = ThisWorkbook.Sheets("Master").Range("B" & Rows.Count).End(xlUp).Row
+    For i = 2 To L_R2
+    Me.ComboBox3.AddItem ThisWorkbook.Sheets("Master").Range("B" & i).Value
+    Next
+    'Me.ComboBox3.List = Array("AA")
+    
+    L_R3 = ThisWorkbook.Sheets("Master").Range("C" & Rows.Count).End(xlUp).Row
+    For i = 2 To L_R3
+    Me.ComboBox4.AddItem ThisWorkbook.Sheets("Master").Range("C" & i).Value
+    Next
+'    Me.ComboBox4.List = Array("Low", "Medium", "High", "Critical")
+
+    L_R4 = ThisWorkbook.Sheets("Master").Range("D" & Rows.Count).End(xlUp).Row
+    For i = 2 To L_R4
+    Me.ComboBox5.AddItem ThisWorkbook.Sheets("Master").Range("D" & i).Value
+    Next
+'    Me.ComboBox5.List = Array("EQ Boardroom", "EQ Digital", "EQ Invest", "EQ Paymaster", "EQ US", "Others")
+
+    L_R5 = ThisWorkbook.Sheets("Master").Range("E" & Rows.Count).End(xlUp).Row
+    For i = 2 To L_R5
+    Me.ComboBox6.AddItem ThisWorkbook.Sheets("Master").Range("E" & i).Value
+    Next
+'    Me.ComboBox6.List = Array("4AMLD-IS", "Bank of Ireland", "CRT", "Customer Experience Centre", "Employee Services", "EQ Boost", "EQ Global - Reconciliations", "EQ Global - Transaction monitoring", "Estates Registrations", "General Correspondance", "HR Payroll", "IS Maintenance", "Payment Reissues", "Pensions", "Postal Share Dealing", "Share Register Maintenance", "Shareowner Services", "Tax", "Transfers & LI", "Others")
+
+    L_R6 = ThisWorkbook.Sheets("Master").Range("F" & Rows.Count).End(xlUp).Row
+    For i = 2 To L_R6
+    Me.ComboBox7.AddItem ThisWorkbook.Sheets("Master").Range("F" & i).Value
+    Next
+'    Me.ComboBox7.List = Array("UK", "India", "IND - Chennai", "IND - Bengaluru")
+
+    L_R7 = ThisWorkbook.Sheets("Master").Range("G" & Rows.Count).End(xlUp).Row
+    For i = 2 To L_R7
+    Me.ComboBox8.AddItem ThisWorkbook.Sheets("Master").Range("G" & i).Value
+    Next
+'    Me.ComboBox8.List = Array("UAT Testing", "Dropped", "Completed", "Completed-awaiting sign off", "Completed-under SME review", "Completed-SME info awaiting", "In progress", "In progress-awaiting sign off", "In progress-under SME review", "In progress-SME info awaiting", "Awaiting for Signoff", "On Hold", "Not Started")
+    Me.ComboBox9.List = Array("Yes", "No")
+    
+    Me.DTPicker04.Enabled = False
+    Me.DTPicker04.CalendarTitleBackColor = vbWindowBackground
+    
+    
+End Sub
