@@ -1,0 +1,4224 @@
+Sub login1()
+Application.DisplayAlerts = False
+Application.ScreenUpdating = False
+Dim olApp As Object
+Dim mybook As Workbook
+Dim mypath As String
+Dim olMail As Object
+
+Set olApp = CreateObject("Outlook.Application")
+Set olMail = olApp.CreateItem(0)
+
+With olMail
+        .To = "Sadhish.Kumar@equiniti.com;Vignesh.Rajamanickam@equiniti.com;Vipinpallikkara.Veedu@equiniti.com; Prem.A@equiniti.com;Mahendra.Sathukutu@equiniti.com; Raghurajbandre.Kumara@equiniti.com"
+        '.To = "Vigneshwaran.ramalingam1@equiniti.com"
+        .Subject = "LogIn"
+End With
+olMail.Display
+
+Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+mybook.Sheets("Others").Select
+mybook.Sheets("Others").Range("A10000").End(xlUp)(2).Select
+
+ActiveCell.Value = VBA.Environ("username")
+ActiveCell.Offset(0, 1).Value = VBA.Date
+ActiveCell.Offset(0, 3).Value = "LogIn"
+dtFormat = "yyyy/mm/dd hh:mm:ss"
+ActiveCell.Offset(0, 5).Value = VBA.Format([Now], dtFormat)
+ActiveCell.Offset(0, 6).Value = VBA.Format([Now], dtFormat)
+mybook.Save
+mybook.Close False
+
+MsgBox "Welcome", vbInformation, "Login"
+
+End Sub
+Public CloseMode As Boolean
+Sub logout1()
+
+Dim olApp As Object
+Dim mybook As Workbook
+Dim mypath As String
+Dim olMail As Object
+Dim CloseMode As Boolean
+Dim Tdate1 As Date
+Dim startrng As Range
+Dim myMsg As VbMsgBoxResult
+
+Application.DisplayAlerts = False
+Application.ScreenUpdating = False
+
+myMsg = MsgBox("Please confirm whether you want to Log out for the day?" & vbCrLf & "Once you logout, Can't Login again", vbQuestion + vbYesNo, "Confirmation")
+If myMsg = vbNo Then Exit Sub
+
+Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+mybook.Sheets("Others").Select
+
+Tdate1 = VBA.Format(Now, "dd/mm/yyyy")
+mybook.Sheets("Others").Range("B:B").Select
+
+Set startrng = Selection.Find(what:=Tdate1, After:=ActiveCell, LookIn:=xlValues, _
+            lookat:=xlWhole, SearchOrder:=xlByColumns, SearchDirection:=xlNext, _
+            MatchCase:=False, SearchFormat:=False)
+
+lastRow = mybook.Sheets("Others").Range("A" & Rows.Count).End(xlUp).Row
+
+For Each r In Range("D" & startrng.Row & ":D" & lastRow)
+            'MsgBox r.Value
+            If r.Value = Trim(Format("LogOut", "@")) Then
+                MsgBox "You have already logout for the day", vbCritical, "Logged out"
+                mybook.Close False
+                Exit Sub
+            End If
+Next r
+
+Set olApp = CreateObject("Outlook.Application")
+Set olMail = olApp.CreateItem(0)
+
+With olMail
+        .To = "Sadhish.Kumar@equiniti.com;Vignesh.Rajamanickam@equiniti.com;Vipinpallikkara.Veedu@equiniti.com; Prem.A@equiniti.com;Mahendra.Sathukutu@equiniti.com; Raghurajbandre.Kumara@equiniti.com"
+        '.To = "Vigneshwaran.ramalingam1@equiniti.com"
+        .Subject = "Log Out"
+End With
+olMail.Display
+
+'Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+'mybook.Sheets("Others").Select
+mybook.Sheets("Others").Range("A10000").End(xlUp)(2).Select
+
+ActiveCell.Value = VBA.Environ("username")
+ActiveCell.Offset(0, 1).Value = VBA.Date
+ActiveCell.Offset(0, 3).Value = "LogOut"
+dtFormat = "yyyy/mm/dd hh:mm:ss"
+ActiveCell.Offset(0, 5).Value = VBA.Format([Now], dtFormat)
+ActiveCell.Offset(0, 6).Value = VBA.Format([Now], dtFormat)
+mybook.Save
+
+mybook.Save
+mybook.Close False
+
+MsgBox "Thank you!!", vbInformation, "Log Out"
+
+'ThisWorkbook.Close False
+
+
+End Sub
+'Option Explicit
+
+Sub OpenTool()
+
+Application.DisplayAlerts = False
+Application.ScreenUpdating = False
+
+''-----Version Control-----
+'
+'Dim BOT_A As Workbook
+'Dim BOT_A1 As Worksheet
+'Dim Project_ID As Variant
+'Dim Project_Version As Variant
+'
+'Project_Name = "BOI - Macro BOT"
+'Project_ID = Trim(Format("INI2021002", "@"))
+'Project_Version = Format(ThisWorkbook.Sheets("Home").Range("A1").Value, "0.0")
+'
+'Set BOT_A = Workbooks.Open("L:\EQI Innovation Lab\Operations analyst\Team Member Folder\Vignesh R\BOT_attendance_V-1.0.xlsx")
+'Set BOT_A1 = BOT_A.Sheets(1)
+'
+'BOT_A1.Activate
+'BOT_A1.Columns("B:B").Select
+'    Selection.TextToColumns Destination:=Range("Table1[[#Headers],[Project ID]]") _
+'        , DataType:=xlDelimited, TextQualifier:=xlDoubleQuote, _
+'        ConsecutiveDelimiter:=False, Tab:=True, Semicolon:=False, Comma:=False _
+'        , Space:=False, Other:=False, FieldInfo:=Array(1, 2), _
+'        TrailingMinusNumbers:=True
+'
+'R_No = ""
+'R_No = Split(BOT_A1.UsedRange.Find(What:=Project_ID, After:=ActiveCell, LookIn:=xlValues, _
+'        LookAt:=xlWhole, SearchOrder:=xlByColumns, SearchDirection:=xlNext, _
+'        MatchCase:=False, SearchFormat:=False).Address, "$")(2)
+'On Error GoTo 0
+'    If R_No <> "" Then
+'        BOT_A1.Range("B" & R_No).Select
+'        BOT_ID = Format(Selection.Offset(0, 1).Value, "0.0")
+'    Else
+'        MsgBox "Bot ID not found in Bot Attendance"
+'        BOT_A.Close
+'        Exit Sub
+'    End If
+'
+'If Project_Version = BOT_ID Then
+'    BOT_A.Close
+'    GoTo start
+'Else
+'    BOT_A.Close
+'    MsgBox "Latest version is available, Please contact Innovation Team", vbCritical, "Version Restriction"
+'    Exit Sub
+'End If
+''-------------------------------------------
+'start:
+    
+'---New user file creation---
+    Dim strFileName As String
+    Dim strFileExists As String
+    Dim Tdate1 As Date
+    Dim startrng As Range
+    Dim loff As Range
+  
+    strFileName = ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx"
+    strFileExists = Dir(strFileName)
+
+    If strFileExists = "" Then
+        If Dir(ThisWorkbook.Path & "\Do not Open\Template.xlsx") = "" Then
+            MsgBox "Please place 'Template' file in Do not Open folder to create new user file", vbCritical, "Template file Missing"
+            Exit Sub
+        End If
+        FileCopy ThisWorkbook.Path & "\Do not Open\Template.xlsx", ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx"
+    End If
+
+'---Login check---
+
+Set mybook1 = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+mybook1.Sheets("Others").Select
+Tdate1 = VBA.Format(Now, "dd/mm/yyyy")
+
+mybook1.Sheets("Others").Range("B:B").Select
+Set loff = Selection.Find(what:=Tdate1, After:=ActiveCell, LookIn:=xlValues, _
+            lookat:=xlWhole, SearchOrder:=xlByColumns, SearchDirection:=xlNext, _
+            MatchCase:=False, SearchFormat:=False)
+
+lastRow = mybook1.Sheets("Others").Range("A" & Rows.Count).End(xlUp).Row
+
+If Not loff Is Nothing Then
+For Each r In Range("D" & loff.Row & ":D" & lastRow)
+            'MsgBox r.Value
+            If r.Value = Trim(Format("LogOut", "@")) Then
+                MsgBox "You have already logout for the day" & vbCrLf & "Please reach TL's or MI to Login again", vbCritical, "Logged out"
+                mybook1.Close False
+                Exit Sub
+            End If
+Next r
+End If
+mybook1.Sheets("Others").Range("B:B").Select
+Set startrng = Selection.Find(what:=Tdate1, After:=ActiveCell, LookIn:=xlValues, _
+            lookat:=xlWhole, SearchOrder:=xlByColumns, SearchDirection:=xlNext, _
+            MatchCase:=False, SearchFormat:=False)
+
+
+If startrng Is Nothing Then
+    mybook1.Close False
+    Call login1
+Else
+    mybook1.Close False
+    GoTo nxt
+End If
+            
+nxt:
+    
+    Home_Page.Show vbModeless
+    
+    
+    
+End Sub
+'Option Explicit
+
+Private Sub ComboBox1_AfterUpdate()
+
+ComboBox3.Locked = False
+ComboBox5.Locked = False
+ComboBox6.Locked = False
+
+    If ComboBox1.Value = "Business Banking" Or ComboBox1.Value = "EDD - Business Banking - NI" Then
+        TextBox3.Value = 4
+    ElseIf ComboBox1.Value = "Sole Trader" Or ComboBox1.Value = "EDD - Sole Trader - NI" Then
+        TextBox3.Value = 1
+    ElseIf ComboBox1.Value = "FCS" Then
+        TextBox3.Value = 6
+    End If
+    
+    TextBox3.Locked = True
+    
+    
+    'Updated by VR
+    '---------------------------------------------------------------
+    If ComboBox1.Value = "Sole Trader" Then
+        ComboBox3.Value = "Sole Trader"
+        ComboBox3.Locked = True
+        ComboBox5.Value = "Sole Trader"
+        ComboBox5.Locked = True
+        ComboBox6.AddItem "Sole Trader"
+        ComboBox6.Value = "Sole Trader"
+        ComboBox6.Locked = True
+    ElseIf ComboBox1.Value = "FCS" Then
+        ComboBox3.Value = ""
+        ComboBox5.Value = "FCS"
+        ComboBox5.Locked = True
+        ComboBox6.AddItem "FCS"
+        ComboBox6.Value = "FCS"
+        ComboBox6.Locked = True
+    ElseIf Me.ComboBox1.Value <> "FCS" Or Me.ComboBox1.Value <> "Sole Trader" Then
+        ComboBox3.Value = ""
+        ComboBox5.Value = ""
+        ComboBox6.Value = ""
+    End If
+    '---------------------------------------------------------------
+
+End Sub
+'--Updated by VR----
+Private Sub ComboBox4_AfterUpdate()
+ComboBox5.Locked = False
+ComboBox6.Locked = False
+ Me.ComboBox6.List = Array("UK Incorporated", "Non UK Incorporated", "Partnership", "PLC", "LLP", "Uni incorporated Entities", "State Body")
+'--1--
+If Me.ComboBox3 = "Limited Company" And Me.ComboBox4 = "United Kingdom" Then
+    ComboBox5.Value = "SME"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "UK Incorporated"
+    ComboBox6.Locked = True
+End If
+'--2--
+If Me.ComboBox3 = "Limited Company" And Me.ComboBox4 <> "United Kingdom" Then
+    ComboBox5.Value = "More Complex"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "Non UK Incorporated"
+    ComboBox6.Locked = True
+End If
+'--3--
+If Me.ComboBox3 = "Partnership" Then
+    ComboBox5.Value = "SME"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "Partnership"
+    ComboBox6.Locked = True
+End If
+'--4--
+If Me.ComboBox3 = "Public Limited Company" Then
+    ComboBox5.Value = "SME"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "PLC"
+    ComboBox6.Locked = True
+End If
+'--5--
+If Me.ComboBox3 = "Limited Liability Partnership" Then
+    ComboBox5.Value = "More Complex"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "LLP"
+    ComboBox6.Locked = True
+End If
+'--6--
+If Me.ComboBox3 = "Trust" Then
+    ComboBox5.Value = "More Complex"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "Uni incorporated Entities"
+    ComboBox6.Locked = True
+End If
+'--7--
+If Me.ComboBox3 = "Private Limited Company" And Me.ComboBox4 = "United Kingdom" Then
+    ComboBox5.Value = "SME"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "UK Incorporated"
+    ComboBox6.Locked = True
+End If
+'--7--
+If Me.ComboBox3 = "Private Limited Company" And Me.ComboBox4 <> "United Kingdom" Then
+    ComboBox5.Value = "More Complex"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "Non UK Incorporated"
+    ComboBox6.Locked = True
+End If
+'--8--
+If Me.ComboBox3 = "Unincorporated Body" Then
+    ComboBox5.Value = "More Complex"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "Uni incorporated Entities"
+    ComboBox6.Locked = True
+End If
+'--9--
+If Me.ComboBox3 = "State Body" Then
+    ComboBox5.Value = "More Complex"
+    ComboBox5.Locked = True
+    ComboBox6.Value = "State Body"
+    ComboBox6.Locked = True
+End If
+
+End Sub
+
+
+
+Private Sub ComboBox5_AfterUpdate()
+
+    Dim myIndex As Integer
+    
+    myIndex = ComboBox5.ListIndex
+    
+    ComboBox6.Clear
+    
+    If myIndex = 0 Then
+        With ComboBox6
+            .AddItem "UK incorporated Ltd"
+            .AddItem "PLC"
+            .AddItem "Partnership"
+        End With
+    ElseIf myIndex = 1 Then
+        With ComboBox6
+            .AddItem "Non UK incorporated"
+            .AddItem "LLP"
+            .AddItem "State Body"
+            .AddItem "Uni Incorporated Entities"
+        End With
+    ElseIf myIndex = 2 Then
+        With ComboBox6
+            .AddItem "Sole Trader"
+        End With
+    ElseIf myIndex = 3 Then
+        With ComboBox6
+            .AddItem "FCS"
+        End With
+    End If
+
+End Sub
+
+Private Sub ComboBox8_AfterUpdate()
+
+    If ComboBox8.Value = "Yes" Then
+        ComboBox9.AddItem "NA"
+        ComboBox9.Value = "NA"
+        ComboBox9.Locked = True
+        ComboBox11.Value = ""
+        ComboBox11.Locked = False
+    Else
+        ComboBox9.Value = ""
+        ComboBox9.Locked = False
+        ComboBox11.AddItem "NA"
+        ComboBox11.Value = "NA"
+        ComboBox11.Locked = True
+    End If
+    
+End Sub
+
+Private Sub CommandButton1_Click()
+    
+    Dim mymessage As String
+    
+    mymessage = MsgBox("Do you really want to exit?", vbQuestion + vbYesNo, "Confirmation")
+    
+    If mymessage = vbYes Then
+        Unload Assignment
+        MainPage_NonPersonal.Show vbModeless
+    End If
+    
+End Sub
+
+Private Sub CommandButton2_Click()
+    
+    Application.ScreenUpdating = False
+    
+    Dim olApp As Object
+    Dim olMail As Object
+    Dim i As Integer
+    Dim AnalystEmail As String
+    Dim StartDate As Date
+    Dim EndDate As Date
+    Dim Duration As Date
+    Dim mybook As Workbook
+    Dim myRange()
+    
+    For i = 1 To 12
+        If Me.Controls("Combobox" & i).Value = "" Then
+            MsgBox "Please make sure to enter all the fields"
+            Me.Controls("Combobox" & i).SetFocus
+            Exit Sub
+        End If
+    Next i
+    
+    For i = 1 To 5
+        If Me.Controls("Textbox" & i).Value = "" Then
+            MsgBox "Please make sure to enter all the fields"
+            Me.Controls("Textbox" & i).SetFocus
+            Exit Sub
+        End If
+    Next i
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("A1", .Range("D1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 1) = Me.ComboBox9.Value Then
+                AnalystEmail = myRange(i, 4)
+            End If
+        Next i
+    End With
+    
+    StartDate = Me.Label16.Caption
+    EndDate = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    
+    Duration = EndDate - StartDate
+    
+    'Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\Assignment.xlsx")
+    Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+    Sheets("Assignment").Select
+     
+    Range("A50000").End(xlUp)(2).Select
+     
+    ActiveCell.Value = VBA.Environ("username")
+    ActiveCell.Offset(0, 1).Value = Me.ComboBox1.Value
+    ActiveCell.Offset(0, 2).Value = Me.TextBox2.Value
+    ActiveCell.Offset(0, 3).Value = Me.ComboBox2.Value
+    ActiveCell.Offset(0, 4).Value = Me.ComboBox3.Value
+    ActiveCell.Offset(0, 5).Value = Me.ComboBox4.Value
+    ActiveCell.Offset(0, 6).Value = Me.TextBox4.Value
+    ActiveCell.Offset(0, 7).Value = Me.TextBox5.Value
+    ActiveCell.Offset(0, 8).Value = Me.ComboBox5.Value
+    ActiveCell.Offset(0, 9).Value = Me.ComboBox6.Value
+    ActiveCell.Offset(0, 10).Value = Me.TextBox3.Value
+    ActiveCell.Offset(0, 11).Value = Me.ComboBox7.Value
+    ActiveCell.Offset(0, 12).Value = Me.ComboBox8.Value
+    ActiveCell.Offset(0, 13).Value = Me.ComboBox12.Value
+    ActiveCell.Offset(0, 14).Value = Me.ComboBox9.Value
+    ActiveCell.Offset(0, 15).Value = Me.ComboBox10.Value
+    ActiveCell.Offset(0, 16).Value = Me.ComboBox11.Value
+    ActiveCell.Offset(0, 17).Value = StartDate
+    ActiveCell.Offset(0, 18).Value = EndDate
+     
+    mybook.Save
+     
+    mybook.Close False
+    
+    Set olApp = CreateObject("Outlook.Application")
+    Set olMail = olApp.CreateItem(0)
+    
+    With olMail
+        
+        .To = AnalystEmail
+        
+        If Me.ComboBox2.Value = "Non-Personal" Then
+            .Subject = "New case " & Me.TextBox2.Value & " Northridge"
+        ElseIf Me.ComboBox2.Value = "FCS" Then
+            .Subject = "New case " & Me.TextBox2.Value & " FCS"
+        Else
+            .Subject = "New case " & Me.TextBox2.Value & " NI"
+        End If
+        
+        If Me.ComboBox2.Value = "Non-Personal" And Me.ComboBox5.Value = "SME" And Me.ComboBox6.Value = "Partnership" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 20 Mins " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        ElseIf Me.ComboBox2.Value = "Non-Personal" And Me.ComboBox5.Value = "SME" And Me.ComboBox6.Value = "UK incorporated Ltd" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 30 Mins " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        ElseIf Me.ComboBox2.Value = "Non-Personal" And Me.ComboBox5.Value = "SME" And Me.ComboBox6.Value = "PLC" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 30 Mins " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        ElseIf Me.ComboBox2.Value = "Non-Personal" And Me.ComboBox5.Value = "More Complex" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 40 Mins " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        ElseIf Me.ComboBox2.Value = "FCS" And Me.ComboBox5.Value = "FCS" And Me.ComboBox6.Value = "FCS" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 3 hours " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        ElseIf Me.ComboBox1.Value = "Sole Trader" And Me.ComboBox2.Value <> "FCS" And Me.ComboBox5.Value = "Sole Trader" And Me.ComboBox6.Value = "Sole Trader" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 20 Mins " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        ElseIf Me.ComboBox2.Value <> "Non-Personal" And Me.ComboBox2.Value <> "FCS" And Me.ComboBox5.Value = "SME" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 40 Mins " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        ElseIf Me.ComboBox2.Value <> "Non-Personal" And Me.ComboBox2.Value <> "FCS" And Me.ComboBox5.Value = "More Complex" Then
+            .Body = "Hi " & ComboBox9.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "SLA - " & " 1 hour " & ComboBox3.Value & _
+                vbNewLine & vbNewLine & "Regards," & vbNewLine & "TL"
+        End If
+        
+        .cc = "Vignesh.Rajamanickam@equiniti.com; Sadhish.Kumar@equiniti.com; Vipinpallikkara.Veedu@equiniti.com; Prem.A@equiniti.com"
+                       
+    End With
+    
+    MsgBox "The record has been updated. Time taken for the entry is " & VBA.Format(Duration, "hh:mm:ss"), vbInformation, "Record Saved"
+    
+    Unload Assignment
+    MainPage_NonPersonal.Show vbModeless
+
+    olMail.Display
+    
+    Application.ScreenUpdating = True
+  
+End Sub
+
+Private Sub TextBox2_AfterUpdate()
+
+    Dim ReviewNum As String
+        
+    ReviewNum = Trim(Me.TextBox2.Value)
+    
+    If VBA.IsNumeric(ReviewNum) = False Then
+        MsgBox "Please enter the valid number"
+        TextBox2.Value = ""
+        Me.TextBox2.SetFocus
+        Exit Sub
+    End If
+    
+    If Len(TextBox2.Value) > 12 Then
+        MsgBox "Please enter the valid number"
+        TextBox2.Value = ""
+        Me.TextBox2.SetFocus
+    End If
+    '--Added by VR--
+    RN = Me.TextBox2.Value
+    L1 = Len(RN)
+    L2 = Len(Replace(RN, " ", ""))
+    Count = L1 - L2
+    If Count >= 1 Then
+        MsgBox "Please remove space from the Review No"
+        Me.TextBox2.Value = ""
+        Me.TextBox2.SetFocus
+    End If
+    
+    
+    
+End Sub
+
+Private Sub TextBox4_AfterUpdate()
+If Not IsDate(Me.TextBox4.Value) Then
+        MsgBox "Not valid date/time", vbCritical, "Date/Time Error"
+        Me.TextBox4.Value = ""
+End If
+End Sub
+Private Sub TextBox5_AfterUpdate()
+If Not IsDate(Me.TextBox5.Value) Then
+        MsgBox "Not valid date/time", vbCritical, "Date/Time Error"
+        Me.TextBox5.Value = ""
+End If
+End Sub
+
+
+Private Sub UserForm_Initialize()
+    
+    Me.Label15.Caption = VBA.Date
+    Me.Label16.Caption = Now
+    Me.TextBox1.Value = VBA.Environ("username")
+    Me.TextBox1.Locked = True
+    Me.TextBox5.Value = VBA.Format(Date, "dd/mm/yyyy")
+    Me.TextBox4.Value = VBA.Format(VBA.DateSerial(Year(Date), Month(Date), 1), "dd/mm/yyyy")
+    Me.ComboBox1.SetFocus
+    
+'    Me.Top = Application.Height - Me.Height
+'    Me.Left = Application.Width - Me.Width
+    
+    Me.ComboBox5.List = Array("SME", "More Complex", "Sole Trader", "FCS")
+    Me.ComboBox8.List = Array("Yes", "No")
+    Me.ComboBox1.List = Array("Business Banking", "Sole Trader", "FCS", "EDD - Business Banking - NI", "EDD - Sole Trader - NI", "PAYG")
+    Me.ComboBox10.List = Array("Analysis", "Risk Assessment", "On Hold", "Screening")
+    Me.ComboBox7.List = Array("Standard SLA", "Enhanced SLA", "Emergency SLA")
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        Me.ComboBox9.List = .Range("A2", .Range("A2").End(xlDown)).Value
+        Me.ComboBox11.List = .Range("F2", .Range("F2").End(xlDown)).Value
+        Me.ComboBox4.List = .Range("G2", .Range("G2").End(xlDown)).Value
+        Me.ComboBox2.List = .Range("H2", .Range("H2").End(xlDown)).Value
+        Me.ComboBox12.List = .Range("I2", .Range("I2").End(xlDown)).Value
+        Me.ComboBox3.List = .Range("J2", .Range("J2").End(xlDown)).Value
+    End With
+    
+End Sub
+
+
+Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then
+        MsgBox "Sorry you must use Cancel or Exit Button", vbCritical, "Authentication Failed"
+        Cancel = True
+    End If
+End Sub
+
+'Option Explicit
+
+Private Sub CommandButton1_Click()
+
+Unload Me
+
+PEP_Level1.Show vbModeless
+
+
+End Sub
+
+Private Sub CommandButton2_Click()
+
+Unload Me
+
+Sanctions_Level1.Show vbModeless
+
+End Sub
+
+Private Sub CommandButton4_Click()
+
+Unload Me
+
+Main_Page.Show vbModeless
+
+Main_Page.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+
+End Sub
+
+Private Sub CommandButton5_Click()
+Unload Me
+
+PEP_Level2.Show vbModeless
+
+End Sub
+
+Private Sub CommandButton6_Click()
+Unload Me
+
+Sanctions_Level2.Show vbModeless
+End Sub
+
+
+
+Private Sub Label15_Click()
+
+End Sub
+
+Private Sub UserForm_Initialize()
+
+    Dim wk As Workbook
+    Dim Level1 As Long
+    Dim Level2 As Long
+    'Dim PEP_C As Long
+    'Dim Sanctions_C As Long
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    On Error GoTo myError
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+    On Error GoTo 0
+    
+    wk.Activate
+    
+    Sheets("Batch_Level1").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level1 = ActiveCell.Value
+    
+'    '---L1-Pep Count---
+    Sheets("Batch_Level1").Range("Z2").Select
+    ActiveCell.FormulaR1C1 = "=COUNTIFS(C[-25],TODAY(),C[-23],""PEP"")"
+    L1_PEP_C = ActiveCell.Value
+    Sheets("Batch_Level1").Range("Z3").Select
+    ActiveCell.FormulaR1C1 = "=COUNTIFS(C[-25],TODAY(),C[-23],""Sanctions"")"
+    L1_San_C = ActiveCell.Value
+'    '---------------
+    
+    Sheets("Batch_Level2").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level2 = ActiveCell.Value
+    
+'    '---Sanctions Count---
+    Sheets("Batch_Level2").Range("Z2").Select
+    ActiveCell.FormulaR1C1 = "=COUNTIFS(C[-25],TODAY(),C[-23],""PEP"")"
+    L2_PEP_C = ActiveCell.Value
+    Sheets("Batch_Level2").Range("Z3").Select
+    ActiveCell.FormulaR1C1 = "=COUNTIFS(C[-25],TODAY(),C[-23],""Sanctions"")"
+    L2_San_C = ActiveCell.Value
+    '---------------
+    
+'    Me.Top = Application.Height - Me.Height
+'    Me.Left = Application.Width - Me.Width
+    
+    wk.Close False
+    
+    Me.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    Me.Label8.Caption = Level1
+    Me.Label12.Caption = L1_PEP_C
+    Me.Label14.Caption = L1_San_C
+    Me.Label17.Caption = Level2
+    Me.Label18.Caption = L2_PEP_C
+    Me.Label20.Caption = L2_San_C
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    Exit Sub
+    
+myError:
+    MsgBox "System is not getting update; Please try again", vbCritical, "Alert"
+    Main_Page.Show vbModeless
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+
+End Sub
+
+
+Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
+If CloseMode = vbFormControlMenu Then
+    Cancel = True
+    MsgBox "Please use the Exit button!", vbCritical, "Alert!!!"
+End If
+End Sub
+
+
+
+Private Sub ComboBox3_AfterUpdate()
+    
+    If ComboBox3.Value = "No" Then
+        ComboBox4.Value = "NA"
+        ComboBox4.Locked = True
+    ElseIf ComboBox3.Value = "Yes" Then
+        ComboBox4.Value = ""
+        ComboBox4.Locked = False
+    Else
+        MsgBox "Incorrect Entry!", vbCritical, "Alert!!!"
+    End If
+    
+    
+End Sub
+
+
+Private Sub ComboBox5_AfterUpdate()
+
+    If ComboBox5.Value <> "" Or ComboBox5.Value = "NA" Then
+          ComboBox6.Value = "Peer Review"
+    End If
+    
+End Sub
+
+
+Private Sub CommandButton1_Click()
+    
+    Dim mymessage As String
+    
+    mymessage = MsgBox("Do you really want to exit?", vbQuestion + vbYesNo, "Confirmation")
+    
+    If mymessage = vbYes Then
+        Unload EntryPage
+        MainPage_NonPersonal.Show vbModeless
+    End If
+    
+End Sub
+
+Private Sub CommandButton2_Click()
+       
+    Application.ScreenUpdating = False
+    
+    Dim olApp As Object
+    Dim olMail As Object
+    Dim mybook As Workbook
+    Dim myEmailID As String
+    Dim myUserName As String
+    Dim myRange()
+    Dim i As Integer
+    Dim X As Integer
+    Dim y As Integer
+    Dim StartDate As Date
+    Dim EndDate As Date
+    Dim Duration As Date
+    Dim RMChecklist As String
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("A1", .Range("D1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 3) = Me.TextBox1.Value Then
+                myUserName = myRange(i, 1)
+            End If
+        Next i
+    End With
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("A1", .Range("D1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 1) = Me.ComboBox5.Value Then
+                myEmailID = myRange(i, 4)
+            End If
+        Next i
+    End With
+    
+    If myUserName = Me.ComboBox5.Value Then
+        MsgBox "This case could not processed as you already worked", vbCritical, "Alert!!!"
+        Exit Sub
+    End If
+    
+    For X = 1 To 6
+        If IsNull(Me.Controls("Textbox" & X)) Or Me.Controls("Textbox" & X) = "" Then
+            MsgBox ("Please ensure to fill all the mandatory fields!")
+            Me.Controls("Textbox" & X).SetFocus
+        Exit Sub
+        End If
+    Next X
+    
+    For y = 1 To 7
+        If IsNull(Me.Controls("Combobox" & y)) Or Me.Controls("Combobox" & y) = "" Then
+            MsgBox ("Please ensure to fill all the mandatory fields!")
+            Me.Controls("Combobox" & y).SetFocus
+        Exit Sub
+        End If
+    Next y
+    
+    If Me.OptionButton1.Value = False And Me.OptionButton2.Value = False Then
+        MsgBox ("Please ensure to fill all the mandatory fields!")
+    Exit Sub
+    End If
+    
+    StartDate = Me.Label16.Caption
+    EndDate = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    
+    Duration = EndDate - StartDate
+    
+    Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+     
+    If Me.OptionButton1.Value = True Then
+        RMChecklist = "Yes"
+    Else
+        RMChecklist = "No"
+    End If
+    
+    Sheets("Analyst").Select
+     
+    Range("A50000").End(xlUp)(2).Select
+     
+    ActiveCell.Value = VBA.Environ("username")
+    ActiveCell.Offset(0, 1).Value = VBA.Date
+    ActiveCell.Offset(0, 2).Value = Me.ComboBox1.Value
+    ActiveCell.Offset(0, 3).Value = Me.TextBox2.Value
+    ActiveCell.Offset(0, 4).Value = Me.TextBox3.Value
+    ActiveCell.Offset(0, 5).Value = Me.ComboBox2.Value
+    ActiveCell.Offset(0, 6).Value = Me.ComboBox3.Value
+    ActiveCell.Offset(0, 7).Value = Me.ComboBox4.Value
+    ActiveCell.Offset(0, 8).Value = Me.ComboBox5.Value
+    ActiveCell.Offset(0, 9).Value = Me.TextBox4.Value
+    ActiveCell.Offset(0, 10).Value = Me.ComboBox6.Value
+    ActiveCell.Offset(0, 11).Value = Me.ComboBox7.Value
+    ActiveCell.Offset(0, 12).Value = Me.TextBox5.Value
+    ActiveCell.Offset(0, 13).Value = Me.TextBox6.Value
+    ActiveCell.Offset(0, 14).Value = StartDate
+    ActiveCell.Offset(0, 15).Value = EndDate
+    ActiveCell.Offset(0, 16).Value = RMChecklist
+     
+    mybook.Save
+     
+    mybook.Close False
+     
+    MsgBox "Your AHT for this case is " & VBA.Format(Duration, "hh:mm:ss"), vbInformation, "Record Saved"
+    
+    Set olApp = CreateObject("Outlook.Application")
+    Set olMail = olApp.CreateItem(0)
+        
+    With olMail
+    
+    .To = myEmailID
+    .cc = "Vignesh.Rajamanickam@equiniti.com; Sadhish.Kumar@equiniti.com; Vipinpallikkara.Veedu@equiniti.com; Prem.A@equiniti.com"
+    .Subject = "New case for Peer Review is assigned to you"
+    .Body = "Hi " & ComboBox5.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & vbNewLine & "Regards," & vbNewLine & "Analyst"
+                   
+    End With
+     
+    Unload Me
+    
+    MainPage_NonPersonal.Show vbModeless
+    
+    olMail.Display
+    
+    Application.ScreenUpdating = True
+        
+End Sub
+
+Private Sub CommandButton3_Click()
+
+    Me.Hide
+
+    OthersPage_NonPersonal.Show vbModeless
+    
+    OthersPage_NonPersonal.Caption = "EntryPage"
+
+End Sub
+
+
+Private Sub TextBox2_AfterUpdate()
+
+    If Not VBA.IsNumeric(Me.TextBox2) Then
+        MsgBox "Numbers are only allowed", vbCritical, "Alert"
+        Me.TextBox2.Value = ""
+        Me.TextBox2.SetFocus
+        Exit Sub
+    End If
+    
+    If Len(Me.TextBox2.Value) < 4 Then
+        MsgBox "Invalid Entry", vbCritical, "Alert"
+        Me.TextBox2.Value = ""
+        Me.TextBox2.SetFocus
+        Exit Sub
+    End If
+    '--Added by VR--
+    RN = Me.TextBox2.Value
+    L1 = Len(RN)
+    L2 = Len(Replace(RN, " ", ""))
+    Count = L1 - L2
+    If Count >= 1 Then
+        MsgBox "Please remove space from the Review No"
+        Me.TextBox2.Value = ""
+        Me.TextBox2.SetFocus
+    End If
+
+End Sub
+
+Private Sub TextBox3_AfterUpdate()
+
+    If Not VBA.IsNumeric(Me.TextBox3) Then
+        MsgBox "Numbers are only allowed", vbCritical, "Alert"
+        Me.TextBox3.Value = ""
+        Me.TextBox3.SetFocus
+        Exit Sub
+    End If
+    
+End Sub
+
+
+Private Sub TextBox4_AfterUpdate()
+
+    If Not VBA.IsNumeric(Me.TextBox4) Then
+        MsgBox "Numbers are only allowed", vbCritical, "Alert"
+        Me.TextBox4.Value = ""
+        Me.TextBox4.SetFocus
+        Exit Sub
+    End If
+
+End Sub
+
+Private Sub UserForm_Initialize()
+    
+    TextBox1.Locked = False
+    ComboBox7.Locked = False
+    Label15.Caption = VBA.Date
+    Label16.Caption = Now
+    TextBox1.Value = VBA.Environ("username")
+    TextBox1.Locked = True
+    ComboBox1.List = Array("Newcase", "Oldcase")
+    ComboBox3.List = Array("Yes", "No")
+    ComboBox7.List = Array("Yes", "No")
+    ComboBox7.Value = "No"
+    ComboBox7.Locked = True
+    ComboBox1.SetFocus
+'    Me.Top = Application.Height - Me.Height
+'    Me.Left = Application.Width - Me.Width
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        Me.ComboBox5.List = .Range("A2", .Range("A2").End(xlDown)).Value
+        Me.ComboBox4.List = .Range("F2", .Range("F2").End(xlDown)).Value
+        Me.ComboBox2.List = .Range("K2", .Range("K2").End(xlDown)).Value
+    End With
+    
+    ComboBox6.List = Array("Additional Documentation", "Analysis on Hold", "Peer Review", "Back to assignment", "Inprogress")
+    
+End Sub
+
+Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then
+        MsgBox "Sorry you must use Cancel or Exit Button", vbCritical, "Authentication Failed"
+        Cancel = True
+    End If
+End Sub
+
+Option Explicit
+
+Private Sub CommandButton11_Click()
+
+    Dim Var1 As String
+    Dim Var2 As String
+    Dim HitValue As String
+    Dim Hit As String
+    Dim CommaCount As Long
+    Dim i As Long
+    Dim Group1, Group2, Group3, Group4 As Long
+    
+    If Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable" Then
+        i = 0
+    ElseIf Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        i = 0
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable" Then
+        i = 0
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        i = 0
+    ElseIf Me.ComboBox10.Value = "Entity Vs Individual" Then
+        i = 0
+    Else
+        i = 1
+    End If
+    
+    If i = 0 Then Exit Sub
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    Me.TextBox9.Value = Hit
+    
+    If Me.OptionButton9.Value = True Then
+        Group1 = 1
+    End If
+    
+    If Me.OptionButton10.Value = True Then
+        Group1 = 2
+    End If
+    
+    If Me.OptionButton11.Value = True Then
+        Group2 = 1
+    End If
+    
+    If Me.OptionButton12.Value = True Then
+        Group2 = 2
+    End If
+    
+    If Me.OptionButton13.Value = True Then
+        Group3 = 1
+    End If
+    
+    If Me.OptionButton14.Value = True Then
+        Group3 = 2
+    End If
+    
+    If Me.OptionButton15.Value = True Then
+        Group4 = 1
+    End If
+    
+    If Me.OptionButton16.Value = True Then
+        Group4 = 2
+    End If
+    
+    If Me.OptionButton15.Enabled = True And Group4 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    If Me.OptionButton9.Enabled = True And Group1 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    If Me.OptionButton11.Enabled = True And Group2 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    If Me.OptionButton13.Enabled = True And Group3 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    Var1 = ""
+    Var2 = ""
+        
+    If Me.OptionButton2.Value = True Then Var1 = "Gender" Else Var1 = ""
+        
+    If Me.OptionButton4.Value = True Then
+        If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Name" Else Var1 = "Name"
+    End If
+    
+    If Me.OptionButton6.Value = True Then
+        If Len(Var1) > 1 Then Var1 = Var1 & ", " & "DOB" Else Var1 = "DOB"
+    End If
+    
+    If Me.ComboBox9.Value = "Sanctions" Or Me.ComboBox9.Value = "Adverse Media" Then
+    
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location" Else Var1 = "Location"
+        End If
+    
+    ElseIf Me.ComboBox9.Value = "PEP" Then
+    
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location/Occupation" Else Var1 = "Location/Occupation"
+        End If
+        
+    ElseIf Me.ComboBox9.Value = "RCA" Then
+    
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location" Else Var1 = "Location"
+        End If
+        
+    End If
+    
+    If Me.ComboBox10.Value = "Entity Vs Entity" Then
+        If Me.OptionButton4.Value = True Then Var1 = "Entity name" Else Var1 = ""
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location" Else Var1 = "Location"
+        End If
+    End If
+    
+    If Me.ComboBox9.Value = "PEP" Then
+        
+        If Me.OptionButton10.Value = True And Me.OptionButton12.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is not senior enough."
+        ElseIf Me.OptionButton10.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is not senior enough and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is outdated and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is Deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is Outdated."
+        End If
+        
+    ElseIf Me.ComboBox9.Value = "RCA" Then
+        
+        If Me.OptionButton16.Value = True Then
+            Var2 = "PEP association not under BOI policy - RCA is not close enough."
+        ElseIf Me.OptionButton10.Value = True And Me.OptionButton12.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is not senior enough."
+        ElseIf Me.OptionButton10.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is not senior enough and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is outdated and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is Deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is Outdated."
+        End If
+    
+    End If
+    
+    For i = 1 To Len(Var1)
+        If Mid(Var1, i, 1) = "," Then
+            CommaCount = CommaCount + 1
+        End If
+    Next i
+    
+    If CommaCount > 0 Then
+        If Var1 <> "" And Var2 = "" Then
+            Var1 = Mid(Var1, 1, InStrRev(Var1, ",") - 1) & Replace(Var1, ",", " and", InStrRev(Var1, ",")) & " Mismatches"
+        ElseIf Var1 <> "" And Var2 <> "" Then
+            Var1 = Var1 & " Mismatches"
+        End If
+    ElseIf Var1 <> "" Then
+        Var1 = Var1 & " Mismatch"
+    End If
+        
+    If Var1 <> "" And Var2 <> "" Then
+        HitValue = "Discounted due to " & Var1 & " and " & Var2
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+    ElseIf Var1 <> "" And Var2 = "" Then
+        HitValue = "Discounted due to " & Var1
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+    ElseIf Var1 = "" And Var2 <> "" Then
+        HitValue = "Discounted due to " & Var2
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+    ElseIf Var1 = "" And Var2 = "" Then
+        MsgBox "No Hit"
+    End If
+    
+
+End Sub
+
+Private Sub CommandButton12_Click()
+    
+    Dim MyData As New DataObject
+    
+    On Error Resume Next
+    
+    MyData.SetText PEP_Level1.TextBox9.Text
+    
+    MyData.PutInClipboard
+    
+End Sub
+
+Private Sub CommandButton13_Click()
+
+    Dim y As Long
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+        
+    Me.TextBox9.Value = Hit
+    
+    Me.MultiPage1.Value = 1
+    
+    For y = 1 To 7
+        Me.Controls("Escalation" & y).Value = False
+        Me.Controls("Escalation" & y).Visible = False
+    Next y
+    
+    Me.MultiPage1.Value = 0
+    
+    For y = 1 To 16
+        Me.Controls("Optionbutton" & y).Value = False
+        Me.Controls("OptionButton" & y).Enabled = False
+    Next y
+    
+    Me.ComboBox9.Value = ""
+    Me.ComboBox10.Value = ""
+    Me.CheckBox1.Value = False
+    Me.CheckBox1.Visible = False
+
+End Sub
+
+Private Sub CommandButton6_Click()
+
+    Dim Hit As String
+    Dim FileLocation As String
+    Dim fso As Object
+    Dim ts As Object
+    Dim FilePath As String
+    Dim y As Long
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+    
+        If Me.ComboBox9.Value = "" Then
+            MsgBox "You haven't selected any category", vbCritical, "Alert"
+            Exit Sub
+        End If
+        
+        If Me.TextBox2.Value > 1 And (Me.HitLabel.Caption = Me.TextBox2.Value - 1) Then
+            Me.CommandButton12.Visible = True
+        End If
+        
+        If Me.HitLabel.Caption = Me.TextBox2.Value Then
+            MsgBox "You have already availed all hits", vbCritical, "Alert"
+            Exit Sub
+        End If
+        
+        If Me.ComboBox10.Value = "Applicable" Or Me.ComboBox10.Value = "Applicable-C/O Person" Then
+            Me.WolfsburgLabel.Caption = Me.WolfsburgLabel.Caption + 1
+        End If
+        
+        Me.MultiPage1.Value = 1
+        
+        For y = 1 To 7
+            Me.Controls("Escalation" & y).Value = False
+            Me.Controls("Escalation" & y).Visible = False
+        Next y
+        
+        Me.MultiPage1.Value = 0
+        
+        For y = 1 To 16
+            Me.Controls("Optionbutton" & y).Value = False
+            Me.Controls("OptionButton" & y).Enabled = False
+        Next y
+        
+        Me.ComboBox10.Value = ""
+        Me.ComboBox9.Value = ""
+        Me.CheckBox1.Visible = False
+        Me.MultiPage1.Value = 0
+        
+        FileLocation = ThisWorkbook.Path & "\Log Files\PEP\"
+        
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        
+        'Create Log Files folder if it is not already available
+        
+        If Not fso.FolderExists(FileLocation) = True Then
+            fso.CreateFolder (FileLocation)
+        End If
+        
+        FilePath = FileLocation & LCase(Environ("username")) & ".txt"
+        
+        'Create backup file if it is not already available
+        
+        If Not fso.FileExists(FilePath) = True Then
+            Set ts = fso.CreateTextFile(FilePath)
+            ts.Write "welcome" & vbNewLine
+        Else
+            Set ts = fso.OpenTextFile(FilePath, 8)
+        End If
+        
+        If HitLabel.Caption = 1 Then
+            ts.Write Me.TextBox9.Value
+        Else
+            ts.Write Right(Me.TextBox9.Value, Len(Me.TextBox9.Value) - InStrRev(Me.TextBox9.Value, "Hit") + 1)
+        End If
+        
+        ts.Close
+        
+        Set ts = Nothing
+        Set fso = Nothing
+        
+        If Not Me.HitLabel.Caption = "Hit" Then
+            Me.HitLabel.Caption = Me.HitLabel.Caption + 1
+            Me.Countlabel.Caption = Me.HitLabel.Caption
+        End If
+        
+        If Me.HitLabel.Caption Mod 100 = 0 Then
+            Hit = Left(Me.TextBox9.Value, InStr(1, Me.TextBox9.Value, "Hit") - 1)
+            Me.TextBox9.Value = Hit
+        End If
+    
+    Else
+    
+        MsgBox "You haven't used any hit", vbCritical, "Alert"
+    
+    End If
+
+End Sub
+
+Private Sub CommandButton7_Click()
+
+    Dim y As Long
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    Me.MultiPage1.Value = 1
+    
+    For y = 1 To 7
+        Me.Controls("Escalation" & y).Value = False
+    Next y
+    
+    Me.TextBox9.Value = Hit
+
+End Sub
+
+Private Sub CommandButton8_Click()
+
+    Me.MultiPage1.Value = 0
+
+End Sub
+
+Private Sub TextBox1_AfterUpdate()
+
+    If Len(Me.TextBox1.Value) = 10 Or Me.TextBox1.Value = "" Then
+    Else
+        MsgBox "Invalid entry", vbCritical, "Alert!!!"
+        Me.TextBox1.Value = ""
+        Me.TextBox1.SetFocus
+        Exit Sub
+    End If
+
+End Sub
+
+Private Sub TextBox2_AfterUpdate()
+
+    If Me.TextBox2.Value = 1 Then
+        Me.CommandButton12.Visible = True
+        Me.Countlabel.Caption = Me.TextBox2.Value
+    Else
+        Me.CommandButton12.Visible = False
+    End If
+    
+End Sub
+
+Private Sub CheckBox1_Click()
+
+    Dim i As Long
+    Dim X As Long
+    Dim mySheet As Worksheet
+    Dim y As Long
+    Dim a As Long
+    Dim b As Long
+    Dim lastRow As Long
+    Dim r As Range
+    Dim Escalation()
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+        
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    Me.TextBox9.Value = Hit
+    
+    If Me.CheckBox1.Value = True Then
+    
+        For i = 1 To 16
+            Me.Controls("OptionButton" & i).Enabled = False
+        Next i
+        
+        Me.ComboBox10.Value = ""
+        
+        Me.CommandButton11.Enabled = False
+        
+        Me.MultiPage1.Value = 1
+        
+        Set mySheet = ThisWorkbook.Sheets("Personal_Data")
+        
+        lastRow = mySheet.Range("G50000").End(xlUp).Row
+        
+        For Each r In mySheet.Range("G1:G" & lastRow)
+            If r.Value = Me.ComboBox9.Value Then
+                a = a + 1
+                ReDim Preserve Escalation(1 To a)
+                Escalation(a) = r.Offset(0, 1).Value
+            End If
+        Next r
+        
+        For b = 1 To UBound(Escalation)
+            Me.Controls("Escalation" & b).Caption = Escalation(b)
+            Me.Controls("Escalation" & b).Visible = True
+        Next b
+    
+    Else
+    
+        Me.ComboBox10.Value = ""
+        
+        Me.CommandButton11.Enabled = True
+        
+        Me.MultiPage1.Value = 1
+        
+        For y = 1 To 7
+            Me.Controls("Escalation" & y).Value = False
+            Me.Controls("Escalation" & y).Visible = False
+        Next y
+        
+        Me.MultiPage1.Value = 0
+    
+    End If
+ 
+End Sub
+
+Private Sub Escalation1_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation1.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation1.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation2_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation2.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation2.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation3_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation3.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation3.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation4_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation4.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation4.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation5_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation5.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation5.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation6_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation6.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation6.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation7_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation7.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation7.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub OptionButton15_AfterUpdate()
+    
+   Dim i As Long
+   
+   For i = 9 To 12
+        If Me.OptionButton15.Value = True Then
+            Me.Controls("OptionButton" & i).Value = False
+            Me.Controls("OptionButton" & i).Enabled = True
+        End If
+   Next i
+   
+End Sub
+
+Private Sub OptionButton16_AfterUpdate()
+   
+   Dim i As Long
+   
+   For i = 9 To 14
+        If Me.OptionButton16.Value = True Then
+            Me.Controls("OptionButton" & i).Value = False
+            Me.Controls("OptionButton" & i).Enabled = False
+        End If
+   Next i
+   
+End Sub
+
+
+Private Sub OptionButton5_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Sanctions" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton6_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Sanctions" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton7_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Adverse Media" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton8_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Adverse Media" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton9_AfterUpdate()
+    
+    If OptionButton9.Value = True Then
+        OptionButton13.Enabled = True
+        OptionButton14.Enabled = True
+    Else
+        OptionButton13.Value = False
+        OptionButton14.Value = False
+        OptionButton13.Enabled = False
+        OptionButton14.Enabled = False
+    End If
+    
+End Sub
+
+Private Sub OptionButton10_AfterUpdate()
+    
+    If OptionButton10.Value = True Then
+        OptionButton13.Value = False
+        OptionButton14.Value = False
+        OptionButton13.Enabled = False
+        OptionButton14.Enabled = False
+    Else
+        OptionButton13.Enabled = True
+        OptionButton14.Enabled = True
+    End If
+    
+End Sub
+
+Private Sub ComboBox10_AfterUpdate()
+
+    Dim Hit As String
+    Dim i As Long
+    
+    For i = 1 To 16
+        Me.Controls("Optionbutton" & i).Value = False
+        Me.Controls("OptionButton" & i).Enabled = False
+    Next i
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Discounted due to Insufficient unique identifying PEP details provided by the list provider in the alert details to facilitate effective PEP screening" & vbCr
+    ElseIf Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Match to C/O Person-Discounted due to Insufficient unique identifying PEP details provided by the list provider in the alert details to facilitate effective PEP screening" & vbCr
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Alert being discounted under standard BOI RCA policy; no DOB exists on lexis nexis list information" & vbCr
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Match to C/O Person-Alert being discounted under standard BOI RCA policy; no DOB exists on lexis nexis list information" & vbCr
+    ElseIf Me.ComboBox10.Value = "Entity Vs Individual" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Discounted due to Name, DOB and Entity type mismatch" & vbCr
+    Else
+        Me.TextBox9.Value = Hit
+    End If
+    
+    If Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Not Applicable" Then
+        For i = 1 To 12
+            Me.Controls("OptionButton" & i).Enabled = True
+        Next i
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Not Applicable" Then
+        For i = 1 To 8
+            Me.Controls("OptionButton" & i).Enabled = True
+        Next i
+        Me.OptionButton15.Enabled = True
+        Me.OptionButton16.Enabled = True
+    Else
+        For i = 1 To 16
+            Me.Controls("Optionbutton" & i).Value = False
+            Me.Controls("OptionButton" & i).Enabled = False
+        Next i
+    End If
+    
+    If Me.ComboBox10.Value = "Entity Vs Entity" Then
+        Me.OptionButton3.Enabled = True
+        Me.OptionButton4.Enabled = True
+        Me.OptionButton7.Enabled = True
+        Me.OptionButton8.Enabled = True
+    End If
+
+End Sub
+
+Private Sub ComboBox9_AfterUpdate()
+
+    Dim ReviewID As String
+    Dim y As Long
+    Dim i As Long
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+        
+    Me.TextBox9.Value = Hit
+    
+    Me.MultiPage1.Value = 1
+    
+    For y = 1 To 7
+        Me.Controls("Escalation" & y).Value = False
+        Me.Controls("Escalation" & y).Visible = False
+    Next y
+    
+    Me.MultiPage1.Value = 0
+    
+    For y = 1 To 16
+        Me.Controls("Optionbutton" & y).Value = False
+        Me.Controls("OptionButton" & y).Enabled = False
+    Next y
+    
+    Me.ComboBox10.Value = ""
+    Me.CheckBox1.Value = False
+    Me.CheckBox1.Visible = True
+        
+    If Me.ComboBox9.Value = "PEP" Then
+        Me.ComboBox10.Enabled = True
+    ElseIf Me.ComboBox9.Value = "RCA" Then
+        Me.ComboBox10.Enabled = True
+    ElseIf Me.ComboBox9.Value = "Business PEP" Then
+        Me.ComboBox10.Enabled = False
+    End If
+    
+    If InStr(1, Me.TextBox9.Value, "Hit") > 0 Then
+    Else
+        'Me.TextBox9.Value = "Review ID: " & Me.TextBox1.Value & vbCr & "Product: " & vbCr
+        Me.HitLabel.Caption = 1
+    End If
+
+End Sub
+
+Private Sub CommandButton1_Click()
+
+Dim mybook As Workbook
+Dim StartDate As Date
+Dim EndDate As Date
+Dim Duration As Date
+Dim obj As Object
+Dim i As Integer
+Dim a, b, c, d, e As Integer
+Dim FileLocation As String
+Dim fso As Object
+Dim ts As Object
+Dim FilePath As String
+
+Application.ScreenUpdating = False
+
+For i = 1 To 5
+    If Controls("Textbox" & i).Value = "" Or VBA.IsNumeric(Controls("Textbox" & i)) = False Then
+    MsgBox "Your input information is wrong or not entered", vbCritical, "You're missing something!"
+    Controls("Textbox" & i).Value = ""
+    Controls("Textbox" & i).SetFocus
+    Exit Sub
+    End If
+Next i
+
+If Me.TextBox2.Value = 0 Then
+    MsgBox "Invalid Entry", vbCritical, "Alert!!!"
+    Me.TextBox2.Value = ""
+    Me.TextBox2.SetFocus
+    Exit Sub
+End If
+
+a = CInt(Me.TextBox2.Value)
+b = CInt(Me.TextBox3.Value)
+c = CInt(Me.TextBox4.Value)
+d = CInt(Me.TextBox5.Value)
+e = b + c + d
+
+If Not a = e Then
+    MsgBox "Hit count entered is invalid", vbCritical, "Incorrect entry"
+    Exit Sub
+End If
+    
+If InStrRev(Me.TextBox9.Value, "Hit") > 0 Then
+    i = InStrRev(Me.TextBox9.Value, "Hit") + 4
+    a = InStrRev(Me.TextBox9.Value, ":")
+    b = Mid(Me.TextBox9.Value, i, a - i)
+    If Not Me.TextBox2.Value = b Then
+        MsgBox "Hit count is missed", vbCritical, "Alert"
+        Exit Sub
+    End If
+Else
+    MsgBox "Hit count is missed", vbCritical, "Alert"
+    Exit Sub
+End If
+
+
+StartDate = Me.Label7.Caption
+EndDate = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+
+Duration = EndDate - StartDate
+
+ Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+ 
+ Sheets("Batch_Level1").Select
+ 
+ Range("A50000").End(xlUp)(2).Select
+ 
+ ActiveCell.Value = VBA.Date
+ ActiveCell.Offset(0, 1).Value = VBA.Environ("username")
+ ActiveCell.Offset(0, 2).Value = "PEP"
+ ActiveCell.Offset(0, 3).Value = Me.TextBox1.Value
+ ActiveCell.Offset(0, 4).Value = Me.TextBox2.Value
+ ActiveCell.Offset(0, 5).Value = Me.TextBox3.Value
+ ActiveCell.Offset(0, 6).Value = Me.TextBox4.Value
+ ActiveCell.Offset(0, 7).Value = Me.TextBox5.Value
+ ActiveCell.Offset(0, 8).Value = StartDate
+ ActiveCell.Offset(0, 9).Value = EndDate
+ 
+ If Me.ComboBox10.Value = "Applicable" Or Me.ComboBox10.Value = "Applicable-C/O Person" Then
+    Me.WolfsburgLabel.Caption = Me.WolfsburgLabel.Caption + 1
+ End If
+
+ ActiveCell.Offset(0, 10).Value = WolfsburgLabel.Caption
+
+ mybook.Save
+ 
+ mybook.Close False
+ 
+    FileLocation = ThisWorkbook.Path & "\Log Files\PEP\"
+        
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    'Create Log Files folder if it is not already available
+    
+    If Not fso.FolderExists(FileLocation) = True Then
+        fso.CreateFolder (FileLocation)
+    End If
+    
+    FilePath = FileLocation & LCase(Environ("username")) & ".txt"
+    
+    'Create backup file if it is not already available
+    
+    If Not fso.FileExists(FilePath) = True Then
+        Set ts = fso.CreateTextFile(FilePath)
+        ts.Write "welcome" & vbNewLine
+    Else
+        Set ts = fso.OpenTextFile(FilePath, 8)
+    End If
+    
+        If HitLabel = 1 Then
+            ts.Write Me.TextBox9.Value
+        Else
+            ts.Write Right(Me.TextBox9.Value, Len(Me.TextBox9.Value) - InStrRev(Me.TextBox9.Value, "Hit") + 1)
+        End If
+    
+    ts.Close
+    
+    Set ts = Nothing
+    Set fso = Nothing
+     
+
+ MsgBox "Your AHT for this alert is " & VBA.Format(Duration, "hh:mm:ss"), vbInformation, "Record Saved"
+ 
+ Me.TextBox1.Value = ""
+ Me.TextBox2.Value = ""
+ Me.TextBox3.Value = ""
+ Me.TextBox4.Value = ""
+ Me.TextBox5.Value = ""
+ 
+ Me.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+ Me.Label14.Caption = Me.Label14.Caption + 1
+ 
+    Me.MultiPage1.Value = 1
+
+    For i = 1 To 7
+        Me.Controls("Escalation" & i).Visible = False
+    Next
+    
+    Me.MultiPage1.Value = 0
+    
+    Me.CheckBox1.Value = False
+    Me.CheckBox1.Visible = False
+    
+    For i = 1 To 16
+        Me.Controls("OptionButton" & i).Enabled = False
+    Next i
+    
+    Me.TextBox9.Value = ""
+    
+    Me.ComboBox9.Value = ""
+    Me.ComboBox10.Value = ""
+   
+    Me.Countlabel.Caption = 1
+    Me.HitLabel.Caption = "Hit"
+    
+    Me.MultiPage1.Value = 0
+    
+    Me.TextBox1.SetFocus
+    'Unload Me
+    'Batch_Page.Show vbModeless
+
+End Sub
+
+Private Sub CommandButton2_Click()
+
+Dim myMsg As VbMsgBoxResult
+
+myMsg = MsgBox("Do you want to close this app?", vbQuestion + vbYesNo, "Confirmation")
+
+If myMsg = vbYes Then
+
+    Unload Me
+    
+    Main_Page.Show vbModeless
+    
+    Main_Page.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    
+End If
+
+End Sub
+
+Private Sub CommandButton5_Click()
+
+Me.Hide
+
+Others_Page.Show vbModeless
+
+Others_Page.Caption = "PEP_Level1"
+
+End Sub
+
+Private Sub CommandButton9_Click()
+    Dim FilePath As String
+    Dim fso As Object
+    Dim sfile As String
+    Dim MyData As New DataObject
+    Dim MyAppID
+    
+    If Me.HitLabel.Caption > 100 Then
+    
+    FilePath = ThisWorkbook.Path & "\Log Files\PEP\" & LCase(Environ("username")) & ".txt"
+    CreateObject("Shell.Application").Open (FilePath)
+
+    Else
+    
+    MyData.SetText PEP_Level1.TextBox9.Text
+    MyAppID = Shell("NOTEPAD.EXE", 1)
+    
+    AppActivate MyAppID
+    MyData.PutInClipboard
+    
+    SendKeys "^V", True
+    
+    End If
+
+End Sub
+
+
+Private Sub UserForm_Initialize()
+
+    Dim wk As Workbook
+    Dim Level1 As Long
+    Dim Level2 As Long
+    Dim i As Long
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    Me.MultiPage1.Value = 0
+    
+    For i = 1 To 16
+        Me.Controls("OptionButton" & i).Enabled = False
+    Next i
+    
+    Me.MultiPage1.Value = 1
+    
+    For i = 1 To 7
+        Me.Controls("Escalation" & i).Visible = False
+    Next
+    
+    Me.MultiPage1.Value = 0
+    
+    On Error GoTo myError
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+    On Error GoTo 0
+    
+    wk.Activate
+    
+    Sheets("Batch_Level1").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level1 = ActiveCell.Value
+    
+    Sheets("Batch_Level2").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level2 = ActiveCell.Value
+    
+    wk.Close False
+    
+    Me.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    Me.Label14.Caption = Level1
+    
+    Me.ComboBox9.List = Array("PEP", "RCA", "Business PEP")
+
+    Me.ComboBox10.List = Array("Applicable", "Applicable-C/O Person", "Not Applicable", "Entity Vs Entity", "Entity Vs Individual")
+
+    Me.HitLabel.Visible = False
+
+    Me.WolfsburgLabel.Caption = 0
+
+    Me.WolfsburgLabel.Visible = False
+
+    Me.CheckBox1.Visible = False
+
+    Me.CommandButton12.Visible = False
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    Exit Sub
+    
+myError:
+    MsgBox "System is not getting update; Please try again", vbCritical, "Alert"
+    Main_Page.Show vbModeless
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+
+End Sub
+
+Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
+
+If CloseMode = vbFormControlMenu Then
+    Cancel = True
+    MsgBox "Please use the Exit button!", vbCritical, "Alert!!!"
+End If
+
+End Sub
+
+'Option Explicit
+
+Private Sub CheckBox1_Click()
+If Me.CheckBox1.Value = True Then
+    If Me.ComboBox2.Value = "Nil" And Me.ComboBox3.Value = "Nil" And Me.ComboBox4.Value = "Nil" Then
+        MsgBox "Please Select atleast one error Code", vbCritical, "Error Code Missing"
+        Me.CheckBox1.Value = False
+    End If
+End If
+
+End Sub
+
+Private Sub ComboBox2_AfterUpdate()
+
+    Dim myRange()
+    Dim i As Long
+    Dim ErrDesc As String
+
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("AB1", .Range("AC1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 1) = Me.ComboBox2.Value Then
+                ErrDesc = myRange(i, 2)
+            End If
+        Next i
+    End With
+    
+    Me.TextBox8.Value = ErrDesc
+    Me.TextBox8.Enabled = False
+    
+If Me.ComboBox2.Value = "Nil" Then
+    Me.ComboBox3.Value = "Nil"
+    Me.ComboBox4.Value = "Nil"
+    Me.TextBox9.Value = "Nil"
+    Me.TextBox10.Value = "Nil"
+    
+    Me.ComboBox3.Enabled = False
+    Me.ComboBox4.Enabled = False
+    Me.TextBox9.Enabled = False
+    Me.TextBox10.Enabled = False
+Else
+    Me.ComboBox3.Enabled = True
+    Me.ComboBox4.Enabled = True
+    'Me.TextBox9.Enabled = True
+    'Me.TextBox10.Enabled = True
+End If
+
+End Sub
+Private Sub ComboBox3_AfterUpdate()
+     
+    Dim myRange()
+    Dim i As Long
+    Dim ErrDesc As String
+
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("AB1", .Range("AC1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 1) = Me.ComboBox3.Value Then
+                ErrDesc = myRange(i, 2)
+            End If
+        Next i
+    End With
+    
+    Me.TextBox9.Value = ErrDesc
+    Me.TextBox9.Enabled = False
+
+End Sub
+Private Sub ComboBox4_AfterUpdate()
+
+    Dim myRange()
+    Dim i As Long
+    Dim ErrDesc As String
+
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("AB1", .Range("AC1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 1) = Me.ComboBox4.Value Then
+                ErrDesc = myRange(i, 2)
+            End If
+        Next i
+    End With
+    
+    Me.TextBox10.Value = ErrDesc
+    Me.TextBox10.Enabled = False
+    
+End Sub
+
+
+Private Sub CommandButton1_Click()
+
+Dim olApp As Object
+Dim olMail As Object
+Dim myEmailID As String
+Dim myUserName As String
+Dim myRange()
+Dim ccList As Variant
+Dim mybook As Workbook
+Dim StartDate As Date
+Dim EndDate As Date
+Dim Duration As Date
+Dim obj As Object
+Dim i As Integer
+Dim a, b, c, d, e As Integer
+
+Application.ScreenUpdating = False
+
+'-----------changes by VR-------------------
+'If Me.ComboBox3.Value <> "Nil" Or Me.ComboBox4.Value <> "Nil" Then
+'        If Me.ComboBox2.Value = Me.ComboBox3.Value Or Me.ComboBox2.Value = Me.ComboBox4.Value Or Me.ComboBox3.Value = Me.ComboBox4.Value Then
+'            MsgBox "Please select different error code", vbCritical, "Same error Code"
+'            Exit Sub
+'        End If
+'End If
+
+Muti_Error = ""
+If Me.CheckBox1.Value = True Then
+        Muti_Error = "Multi_Err"
+        If Len(Me.TextBox7.Value) <= 1 Then
+            MsgBox "Please enter multi error comments", vbCritical, "Info Missing"
+        End If
+End If
+    
+With ThisWorkbook.Worksheets("Non_Personal_Data")
+    myRange = .Range("A1", .Range("D1").End(xlDown)).Value
+    For i = LBound(myRange, 1) To UBound(myRange, 1)
+        If myRange(i, 3) = VBA.Environ("username") Then
+            myUserName = myRange(i, 1)
+        End If
+    Next i
+End With
+    
+With ThisWorkbook.Worksheets("Non_Personal_Data")
+    myRange = .Range("A1", .Range("D1").End(xlDown)).Value
+    For i = LBound(myRange, 1) To UBound(myRange, 1)
+        If myRange(i, 1) = Me.ComboBox1.Value Then
+            myEmailID = myRange(i, 4)
+        End If
+    Next i
+End With
+
+If Me.TextBox6.Value > 0 And Me.ComboBox1.Value = "-" Then
+    MsgBox "Please select the E-Mail id", vbCritical, "You're missing mail id"
+    Exit Sub
+End If
+
+If Me.TextBox6.Value > 0 And Me.TextBox7.Value = "" Then
+    MsgBox "Please enter the error comments", vbCritical, "You're missing Error comments"
+    Exit Sub
+End If
+    
+If myUserName = Me.ComboBox1.Value Then
+    MsgBox "This case could not processed as you already worked", vbCritical, "Alert!!!"
+    Exit Sub
+End If
+
+For i = 1 To 5
+    If Controls("Combobox" & i).Value = "" Then
+    MsgBox "Your input information is wrong or not entered", vbCritical, "You're missing something!"
+    Controls("Combobox" & i).Value = ""
+    Controls("Combobox" & i).SetFocus
+    Exit Sub
+    End If
+Next i
+'--------------------------
+
+
+For i = 1 To 6
+    If Controls("Textbox" & i).Value = "" Or VBA.IsNumeric(Controls("Textbox" & i)) = False Then
+    MsgBox "Your input information is wrong or not entered", vbCritical, "You're missing something!"
+    Controls("Textbox" & i).Value = ""
+    Controls("Textbox" & i).SetFocus
+    Exit Sub
+    End If
+Next i
+
+If Me.TextBox2.Value = 0 Then
+    MsgBox "Invalid Entry", vbCritical, "Alert!!!"
+    Me.TextBox2.Value = ""
+    Me.TextBox2.SetFocus
+    Exit Sub
+End If
+
+a = CInt(Me.TextBox2.Value)
+b = CInt(Me.TextBox3.Value)
+c = CInt(Me.TextBox4.Value)
+d = CInt(Me.TextBox5.Value)
+e = CInt(Me.TextBox6.Value)
+
+If Not a = b + c Then
+    MsgBox "Hit count entered is invalid", vbCritical, "Incorrect entry"
+    Exit Sub
+End If
+    
+If Not a = d + e Then
+    MsgBox "Hit count entered is invalid", vbCritical, "Incorrect entry"
+    Exit Sub
+End If
+    
+    
+StartDate = Me.Label7.Caption
+EndDate = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+
+Duration = EndDate - StartDate
+
+Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+ 
+ Sheets("Batch_Level2").Select
+ 
+ Range("A50000").End(xlUp)(2).Select
+ 
+ ActiveCell.Value = VBA.Date
+ ActiveCell.Offset(0, 1).Value = VBA.Environ("username")
+ ActiveCell.Offset(0, 2).Value = "PEP"
+ ActiveCell.Offset(0, 3).Value = Me.TextBox1.Value
+ ActiveCell.Offset(0, 4).Value = Me.TextBox2.Value
+ ActiveCell.Offset(0, 5).Value = Me.TextBox3.Value
+ ActiveCell.Offset(0, 6).Value = Me.TextBox4.Value
+ ActiveCell.Offset(0, 7).Value = Me.TextBox5.Value
+ ActiveCell.Offset(0, 8).Value = Me.TextBox6.Value
+ ActiveCell.Offset(0, 9).Value = Me.ComboBox2.Value & "|" & Me.ComboBox3.Value & "|" & Me.ComboBox4.Value
+ ActiveCell.Offset(0, 10).Value = Me.TextBox8.Value & "|" & Me.TextBox9.Value & "|" & Me.TextBox10.Value
+ ActiveCell.Offset(0, 11).Value = Muti_Error & "|" & Me.TextBox7.Value
+ ActiveCell.Offset(0, 12).Value = Me.ComboBox5.Value
+ ActiveCell.Offset(0, 13).Value = StartDate
+ ActiveCell.Offset(0, 14).Value = EndDate
+ 
+ mybook.Save
+ 
+ mybook.Close False
+ 
+ MsgBox "Your AHT for this alert is " & VBA.Format(Duration, "hh:mm:ss"), vbInformation, "Record Saved"
+ 
+ '---Changes by VR---
+'---Adding auto mail---
+
+   
+If Me.TextBox6.Value > 0 Then
+    D_Count = Me.TextBox6.Value
+    ccList = ""
+    L_RCC = ThisWorkbook.Sheets("Non_Personal_Data").Range("Q50000").End(xlUp).Row
+    For c = 2 To L_RCC
+    If Len(ccList) > 1 Then
+            ccList = ccList & ";" & ThisWorkbook.Sheets("Non_Personal_Data").Range("Q" & c).Value
+    Else
+            ccList = ThisWorkbook.Sheets("Non_Personal_Data").Range("Q" & c).Value
+    End If
+    Next
+   
+   
+    Set olApp = CreateObject("Outlook.Application")
+    Set olMail = olApp.CreateItem(0)
+    CC_L = ThisWorkbook.Sheets("Non_Personal_Data").Range("Q2:Q6").Value
+    With olMail
+        .To = myEmailID
+        .cc = ccList
+        '.CC = "Vignesh.Rajamanickam@equiniti.com; Prem.A@equiniti.com; Saradha.Mani@equiniti.com; Muhammedali.Shihab@equiniti.com; Rajagopal.Parthasarathy@equiniti.com"
+        .Subject = "Batch_PEP - Error Feedback" & " - " & Me.TextBox1.Value
+        .Body = "Hi " & ComboBox1.Value & vbNewLine & vbNewLine & "Error Details:" & vbNewLine & TextBox7.Value & vbNewLine & vbNewLine & "Regards," & vbNewLine & myUserName
+    End With
+    olMail.Display
+End If
+ 
+For i = 1 To 7
+    Controls("Textbox" & i).Value = ""
+Next i
+ 
+Me.ComboBox1.Value = ""
+Me.ComboBox1.Enabled = False
+Me.Label17.Enabled = False
+
+Me.ComboBox2.Enabled = True
+Me.ComboBox3.Enabled = True
+Me.ComboBox4.Enabled = True
+
+Me.CheckBox1.Value = False
+
+Me.ComboBox2.Value = "Nil"
+Me.ComboBox3.Value = "Nil"
+Me.ComboBox4.Value = "Nil"
+Me.ComboBox5.Value = ""
+
+Me.TextBox8.Value = "Nil"
+Me.TextBox9.Value = "Nil"
+Me.TextBox10.Value = "Nil"
+    
+Me.TextBox8.Enabled = False
+Me.TextBox9.Enabled = False
+Me.TextBox10.Enabled = False
+'--------------------------------------------------------------------
+Me.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+Me.Label16.Caption = Me.Label16.Caption + 1
+Me.TextBox1.SetFocus
+
+'Unload Me
+'Batch_Page.Show vbModeless
+
+If D_Count > 0 Then
+    olMail.Display
+End If
+
+End Sub
+
+Private Sub CommandButton2_Click()
+
+Dim myMsg As VbMsgBoxResult
+
+myMsg = MsgBox("Do you want to close this app?", vbQuestion + vbYesNo, "Confirmation")
+
+If myMsg = vbYes Then
+
+    Unload Me
+    
+    Main_Page.Show vbModeless
+    
+    Main_Page.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    
+End If
+
+End Sub
+
+Private Sub CommandButton5_Click()
+
+Me.Hide
+
+Others_Page.Show vbModeless
+
+Others_Page.Caption = "PEP_Level2"
+
+End Sub
+
+
+Private Sub TextBox1_AfterUpdate()
+
+    Dim AlertID As String
+    Dim wk As Workbook
+    Dim myRange As Range
+    Dim Level1 As String
+    Dim sh As Worksheet
+    Dim tempvalue As Long
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    If Len(Me.TextBox1.Value) = 10 Or Me.TextBox1.Value = "" Then
+    Else
+        MsgBox "Invalid entry", vbCritical, "Alert!!!"
+        Me.TextBox1.Value = ""
+        Me.TextBox1.SetFocus
+        Exit Sub
+    End If
+    
+    AlertID = Me.TextBox1.Value
+    
+    If Me.TextBox1.Value = "" Then
+        Exit Sub
+    Else
+        If Not VBA.IsNumeric(Me.TextBox1.Value) Then
+            MsgBox "Only numbers are allowed", vbInformation, "Info"
+            Me.TextBox1.Value = ""
+            Exit Sub
+        Else
+            AlertID = CDbl(AlertID)
+        End If
+    End If
+    
+    ThisWorkbook.Activate
+    
+    For Each sh In ActiveWorkbook.Sheets
+        sh.Unprotect "abc123"
+    Next sh
+        
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+    
+    wk.Activate
+    
+    Sheets("Batch_Level1").Select
+    
+    Range("L1").Value = AlertID
+    
+    Range("M1").FormulaR1C1 = "=IFERROR(MATCH(RC[-1],C[-9],0),1)"
+    
+    tempvalue = Range("M1").Value
+        
+    wk.Close False
+    
+    ThisWorkbook.Activate
+    
+    Sheets("Batch_Level1").Select
+    
+    Set myRange = Range("B2:B50000").Find(what:=AlertID, lookat:=xlWhole, SearchDirection:=xlPrevious)
+    
+    If Not myRange Is Nothing Then
+        myRange.Select
+        Level1 = ActiveCell.Offset(0, -1).Value
+    End If
+    
+    If VBA.LCase(VBA.Environ("username")) = VBA.LCase(Level1) Or tempvalue > 1 Then
+        MsgBox "You are not authorised to process L2 with same alert ID", vbCritical, "Alert"
+        Me.TextBox1.Value = ""
+    End If
+    
+    For Each sh In ThisWorkbook.Sheets
+        sh.Protect "abc123"
+    Next sh
+    
+    Sheets("Home").Select
+    Range("A1").Select
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+
+End Sub
+
+
+Private Sub TextBox6_AfterUpdate()
+
+If Me.TextBox6.Value > 0 Then
+    Me.ComboBox1.Enabled = True
+    Me.Label17.Enabled = True
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        Me.ComboBox1.List = .Range("A2", .Range("A2").End(xlDown)).Value
+    End With
+ElseIf Me.TextBox6 <= 0 Then
+    Me.ComboBox1.Enabled = False
+    Me.Label17.Enabled = False
+End If
+End Sub
+
+
+Private Sub UserForm_Initialize()
+
+    Dim wk As Workbook
+    Dim Level1 As Long
+    Dim Level2 As Long
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    Me.ComboBox1.Value = "-"
+    Me.ComboBox1.Enabled = False
+    Me.Label17.Enabled = False
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        Me.ComboBox2.List = .Range("AB2", .Range("AB2").End(xlDown)).Value
+        Me.ComboBox3.List = .Range("AB2", .Range("AB2").End(xlDown)).Value
+        Me.ComboBox4.List = .Range("AB2", .Range("AB2").End(xlDown)).Value
+    End With
+    Me.ComboBox5.List = Array("Yes", "No")
+    Me.ComboBox2.Value = "Nil"
+    Me.ComboBox3.Value = "Nil"
+    Me.ComboBox4.Value = "Nil"
+
+    Me.TextBox8.Value = "Nil"
+    Me.TextBox9.Value = "Nil"
+    Me.TextBox10.Value = "Nil"
+    
+    Me.TextBox8.Enabled = False
+    Me.TextBox9.Enabled = False
+    Me.TextBox10.Enabled = False
+    
+    On Error GoTo myError
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+    On Error GoTo 0
+    
+    wk.Activate
+    
+    Sheets("Batch_Level1").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level1 = ActiveCell.Value
+    
+    Sheets("Batch_Level2").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level2 = ActiveCell.Value
+    
+    wk.Close False
+    
+'    Me.Top = Application.Height - Me.Height
+'    Me.Left = Application.Width - Me.Width
+    
+    Me.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    'Me.Label14.Caption = Level1
+    Me.Label16.Caption = Level2
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    Exit Sub
+    
+myError:
+    MsgBox "System is not getting update; Please try again", vbCritical, "Alert"
+    Main_Page.Show vbModeless
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+
+End Sub
+
+Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
+
+If CloseMode = vbFormControlMenu Then
+    Cancel = True
+    MsgBox "Please use the Exit button!", vbCritical, "Alert!!!"
+End If
+
+End Sub
+
+'Option Explicit
+
+Private Sub CheckBox1_Click()
+If Me.CheckBox1.Value = True Then
+    If Me.ComboBox7.Value = "Nil" And Me.ComboBox8.Value = "Nil" And Me.ComboBox9.Value = "Nil" Then
+        MsgBox "Please Select atleast one error Code", vbCritical, "Error Code Missing"
+    End If
+End If
+End Sub
+
+Private Sub ComboBox10_AfterUpdate()
+    Me.ComboBox7.List = Array("Nil")
+    Me.ComboBox8.List = Array("Nil")
+    Me.ComboBox9.List = Array("Nil")
+
+    Me.ComboBox7.Value = "Nil"
+    Me.ComboBox8.Value = "Nil"
+    Me.ComboBox9.Value = "Nil"
+    Me.TextBox4.Value = "Nil"
+    Me.TextBox6.Value = "Nil"
+    Me.TextBox7.Value = "Nil"
+    If Me.ComboBox10.Value = "Sole Trader" Or Me.ComboBox10 = "Sole Trader - GM" Then
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            Me.ComboBox7.List = .Range("AE2", .Range("AE2").End(xlDown)).Value
+            Me.ComboBox8.List = .Range("AE2", .Range("AE2").End(xlDown)).Value
+            Me.ComboBox9.List = .Range("AE2", .Range("AE2").End(xlDown)).Value
+        End With
+    Else
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            Me.ComboBox7.List = .Range("M2", .Range("M2").End(xlDown)).Value
+            Me.ComboBox8.List = .Range("M2", .Range("M2").End(xlDown)).Value
+            Me.ComboBox9.List = .Range("M2", .Range("M2").End(xlDown)).Value
+        End With
+    End If
+End Sub
+
+
+
+Private Sub ComboBox2_AfterUpdate()
+
+    If ComboBox2.Value = "No" Then
+        ComboBox4.Locked = True
+        ComboBox4.AddItem "NA"
+        ComboBox4.Value = "NA"
+    Else
+        ComboBox4.Value = ""
+        ComboBox4.Locked = False
+    End If
+
+End Sub
+
+Private Sub ComboBox5_AfterUpdate()
+
+    If ComboBox5.Value = "No" Then
+        ComboBox6.AddItem "NA"
+        ComboBox6.Value = "NA"
+        ComboBox6.Locked = True
+    Else
+        ComboBox6.Value = ""
+        ComboBox6.Locked = False
+    End If
+
+End Sub
+
+Private Sub ComboBox7_AfterUpdate()
+
+    Dim myRange()
+    Dim i As Long
+    Dim ErrDesc As String
+
+    If Me.ComboBox10.Value = "Sole Trader" Or Me.ComboBox10 = "Sole Trader - GM" Then
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            myRange = .Range("AE1", .Range("AF1").End(xlDown)).Value
+            For i = LBound(myRange, 1) To UBound(myRange, 1)
+                If myRange(i, 1) = Me.ComboBox7.Value Then
+                    ErrDesc = myRange(i, 2)
+                End If
+            Next i
+        End With
+        Me.TextBox4.Value = ErrDesc
+        Me.TextBox4.Enabled = False
+    Else
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            myRange = .Range("M1", .Range("N1").End(xlDown)).Value
+            
+            For i = LBound(myRange, 1) To UBound(myRange, 1)
+                If myRange(i, 1) = Me.ComboBox7.Value Then
+                    ErrDesc = myRange(i, 2)
+                End If
+            Next i
+        End With
+        Me.TextBox4.Value = ErrDesc
+        Me.TextBox4.Enabled = False
+    End If
+    
+If Me.ComboBox7.Value = "Nil" Then
+    Me.ComboBox8.Value = "Nil"
+    Me.ComboBox9.Value = "Nil"
+    Me.TextBox6.Value = "Nil"
+    Me.TextBox7.Value = "Nil"
+    
+    Me.ComboBox8.Enabled = False
+    Me.ComboBox9.Enabled = False
+    Me.TextBox6.Enabled = False
+    Me.TextBox7.Enabled = False
+Else
+    Me.ComboBox8.Enabled = True
+    Me.ComboBox9.Enabled = True
+    'Me.TextBox6.Enabled = True
+    'Me.TextBox7.Enabled = True
+End If
+
+End Sub
+Private Sub ComboBox8_AfterUpdate()
+     
+    Dim myRange()
+    Dim i As Long
+    Dim ErrDesc As String
+
+    If Me.ComboBox10.Value = "Sole Trader" Or Me.ComboBox10 = "Sole Trader - GM" Then
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            myRange = .Range("AE1", .Range("AF1").End(xlDown)).Value
+            For i = LBound(myRange, 1) To UBound(myRange, 1)
+                If myRange(i, 1) = Me.ComboBox8.Value Then
+                    ErrDesc = myRange(i, 2)
+                End If
+            Next i
+        End With
+        Me.TextBox6.Value = ErrDesc
+        Me.TextBox6.Enabled = False
+    Else
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            myRange = .Range("M1", .Range("N1").End(xlDown)).Value
+            
+            For i = LBound(myRange, 1) To UBound(myRange, 1)
+                If myRange(i, 1) = Me.ComboBox8.Value Then
+                    ErrDesc = myRange(i, 2)
+                End If
+            Next i
+        End With
+        Me.TextBox6.Value = ErrDesc
+        Me.TextBox6.Enabled = False
+    End If
+
+End Sub
+Private Sub ComboBox9_AfterUpdate()
+
+    Dim myRange()
+    Dim i As Long
+    Dim ErrDesc As String
+
+    If Me.ComboBox10.Value = "Sole Trader" Or Me.ComboBox10 = "Sole Trader - GM" Then
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            myRange = .Range("AE1", .Range("AF1").End(xlDown)).Value
+            For i = LBound(myRange, 1) To UBound(myRange, 1)
+                If myRange(i, 1) = Me.ComboBox9.Value Then
+                    ErrDesc = myRange(i, 2)
+                End If
+            Next i
+        End With
+        Me.TextBox7.Value = ErrDesc
+        Me.TextBox7.Enabled = False
+    Else
+        With ThisWorkbook.Worksheets("Non_Personal_Data")
+            myRange = .Range("M1", .Range("N1").End(xlDown)).Value
+            
+            For i = LBound(myRange, 1) To UBound(myRange, 1)
+                If myRange(i, 1) = Me.ComboBox9.Value Then
+                    ErrDesc = myRange(i, 2)
+                End If
+            Next i
+        End With
+        Me.TextBox7.Value = ErrDesc
+        Me.TextBox7.Enabled = False
+    End If
+    
+End Sub
+
+Private Sub CommandButton1_Click()
+    
+    Dim mymessage As String
+    
+    mymessage = MsgBox("Do you really want to exit?", vbQuestion + vbYesNo, "Confirmation")
+    
+    If mymessage = vbYes Then
+        Unload QcPage
+        MainPage_NonPersonal.Show vbModeless
+    End If
+    
+End Sub
+
+Private Sub CommandButton2_Click()
+
+    Application.ScreenUpdating = False
+    
+    Dim olApp As Object
+    Dim olMail As Object
+    Dim mybook As Workbook
+    Dim myEmailID As String
+    Dim myUserName As String
+    Dim myRange()
+    Dim i As Integer
+    Dim X As Integer
+    Dim y As Integer
+    Dim StartDate As Date
+    Dim EndDate As Date
+    Dim Duration As Date
+    
+'    If Me.ComboBox7.Value <> "Nil" Or Me.ComboBox8.Value <> "Nil" Or Me.ComboBox9.Value <> "Nil" Then
+'        If Me.ComboBox7.Value = Me.ComboBox8.Value Or Me.ComboBox7.Value = Me.ComboBox9.Value Or Me.ComboBox8.Value = Me.ComboBox9.Value Then
+'            MsgBox "Please select different error code", vbCritical, "Same error Code"
+'            Exit Sub
+'        End If
+'    End If
+    
+    Muti_Error = ""
+    If Me.CheckBox1.Value = True Then
+        Muti_Error = "Multi_Err"
+        If Len(Me.TextBox5.Value) <= 1 Then
+            MsgBox "Please enter multi error comments", vbCritical, "Info Missing"
+            Exit Sub
+        End If
+    End If
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("A1", .Range("D1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 3) = Me.TextBox1.Value Then
+                myUserName = myRange(i, 1)
+            End If
+        Next i
+    End With
+    
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        myRange = .Range("A1", .Range("D1").End(xlDown)).Value
+        For i = LBound(myRange, 1) To UBound(myRange, 1)
+            If myRange(i, 1) = Me.ComboBox6.Value Then
+                myEmailID = myRange(i, 4)
+            End If
+        Next i
+    End With
+    
+    If myUserName = Me.ComboBox6.Value Then
+        MsgBox "This case could not processed as you already worked", vbCritical, "Alert!!!"
+        Exit Sub
+    End If
+    
+    For X = 1 To 5
+        If IsNull(Me.Controls("Textbox" & X)) Or Me.Controls("Textbox" & X) = "" Then
+            MsgBox ("Please ensure to fill all the mandatory fields!")
+            Me.Controls("Textbox" & X).SetFocus
+        Exit Sub
+        End If
+    Next X
+    
+    For y = 1 To 10
+        If IsNull(Me.Controls("Combobox" & y)) Or Me.Controls("Combobox" & y) = "" Then
+            MsgBox ("Please ensure to fill all the mandatory fields!")
+            Me.Controls("Combobox" & y).SetFocus
+        Exit Sub
+        End If
+    Next y
+    
+    StartDate = Me.Label16.Caption
+    EndDate = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    
+    Duration = EndDate - StartDate
+    
+    Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+     
+    Sheets("SrAnalyst").Select
+     
+    Range("A50000").End(xlUp)(2).Select
+     
+    ActiveCell.Value = VBA.Environ("username")
+    ActiveCell.Offset(0, 1).Value = VBA.Date
+    ActiveCell.Offset(0, 2).Value = Me.ComboBox1.Value
+    ActiveCell.Offset(0, 3).Value = Me.TextBox2.Value
+    ActiveCell.Offset(0, 4).Value = Me.TextBox3.Value
+    ActiveCell.Offset(0, 5).Value = Me.ComboBox2.Value
+    ActiveCell.Offset(0, 6).Value = Me.ComboBox3.Value
+    ActiveCell.Offset(0, 7).Value = Me.ComboBox4.Value
+    ActiveCell.Offset(0, 8).Value = Me.ComboBox5.Value
+    ActiveCell.Offset(0, 9).Value = Me.ComboBox6.Value
+    ActiveCell.Offset(0, 10).Value = Me.ComboBox7.Value & "|" & Me.ComboBox8.Value & "|" & Me.ComboBox9.Value
+    ActiveCell.Offset(0, 11).Value = Me.TextBox4.Value & "|" & Me.TextBox6.Value & "|" & Me.TextBox7.Value
+    'ActiveCell.Offset(0, 12).Value = Muti_Error
+    ActiveCell.Offset(0, 12).Value = Muti_Error & "|" & Me.TextBox5.Value
+    ActiveCell.Offset(0, 13).Value = Me.ComboBox10.Value
+    ActiveCell.Offset(0, 14).Value = StartDate
+    ActiveCell.Offset(0, 15).Value = EndDate
+     
+    mybook.Save
+     
+    mybook.Close False
+     
+    MsgBox "Your AHT for this case is " & VBA.Format(Duration, "hh:mm:ss"), vbInformation, "Record Saved"
+    
+    Unload Me
+    
+    MainPage_NonPersonal.Show vbModeless
+    
+    If Me.ComboBox5.Value = "Yes" Then
+    
+        Set olApp = CreateObject("Outlook.Application")
+        Set olMail = olApp.CreateItem(0)
+            
+        With olMail
+        
+        .To = myEmailID
+        .cc = "Vignesh.Rajamanickam@equiniti.com; Prem.A@equiniti.com; Saradha.Mani@equiniti.com; Muhammedali.Shihab@equiniti.com; Rajagopal.Parthasarathy@equiniti.com"
+        .Subject = "Rejected Case Reassigned to you"
+        .Body = "Hi " & ComboBox6.Value & vbNewLine & vbNewLine & "Case Number -" & TextBox2.Value & vbNewLine & "Error Code -" & ComboBox7.Value & " " & ComboBox8.Value & " " & ComboBox9.Value & vbNewLine & vbNewLine & "Regards," & vbNewLine & "Senior Analyst"
+                       
+        End With
+        
+        olMail.Display
+    
+    End If
+    
+    Application.ScreenUpdating = True
+        
+End Sub
+
+Private Sub CommandButton3_Click()
+
+    Me.Hide
+    
+    OthersPage_NonPersonal.Show vbModeless
+    
+    OthersPage_NonPersonal.Caption = "QcPage"
+    
+End Sub
+Private Sub CommandButton4_Click()
+Dim sh As Worksheet
+For Each sh In ActiveWorkbook.Sheets
+    sh.Unprotect "abc123"
+Next sh
+ActiveWorkbook.Connections("Query - Non Personal - Rejected").Refresh
+ActiveWorkbook.Sheets("NP_Rejected_Data").Activate
+Me.Hide
+Application.CalculateUntilAsyncQueriesDone
+MsgBox "Rejected data fetch completed", vbInformation
+End Sub
+Private Sub CommandButton5_Click()
+Dim sh As Worksheet
+For Each sh In ActiveWorkbook.Sheets
+    sh.Unprotect "abc123"
+Next sh
+ActiveWorkbook.Connections("Query - Non Personal - Escalated").Refresh
+ActiveWorkbook.Sheets("NP_Escalated_Data").Activate
+Me.Hide
+Application.CalculateUntilAsyncQueriesDone
+MsgBox "Escalated data fetch completed", vbInformation
+End Sub
+
+
+
+Private Sub Frame2_Click()
+
+End Sub
+
+Private Sub TextBox2_AfterUpdate()
+'--Added by VR--
+    RN = Me.TextBox2.Value
+    L1 = Len(RN)
+    L2 = Len(Replace(RN, " ", ""))
+    Count = L1 - L2
+    If Count >= 1 Then
+        MsgBox "Please remove space from the Review No"
+        Me.TextBox2.Value = ""
+        Me.TextBox2.SetFocus
+    End If
+'--------------------------
+
+    Dim AlertID As String
+    Dim wk As Workbook
+    Dim myRange As Range
+    Dim Level1 As String
+    Dim sh As Worksheet
+    Dim tempvalue As Long
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    AlertID = Me.TextBox2.Value
+    
+    If Me.TextBox2.Value = "" Then
+        Exit Sub
+    Else
+        If Not VBA.IsNumeric(Me.TextBox2.Value) Then
+            MsgBox "Only numbers are allowed", vbInformation, "Info"
+            Me.TextBox2.Value = ""
+            Exit Sub
+        Else
+            AlertID = CDbl(AlertID)
+        End If
+    End If
+    
+    ThisWorkbook.Activate
+    
+    For Each sh In ActiveWorkbook.Sheets
+        sh.Unprotect "abc123"
+    Next sh
+        
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+    
+    wk.Activate
+    
+    Sheets("Analyst").Select
+    
+    Range("S1").Value = AlertID
+    
+    Range("T1").FormulaR1C1 = "=IFERROR(MATCH(RC[-1],C[-16],0),1)"
+    
+    tempvalue = Range("T1").Value
+        
+    wk.Close False
+    
+    If tempvalue > 1 Then
+        MsgBox "You are not authorised to process L2 with same alert ID", vbCritical, "Alert"
+        Me.TextBox2.Value = ""
+    End If
+    
+    For Each sh In ThisWorkbook.Sheets
+        sh.Protect "abc123"
+    Next sh
+    
+    Sheets(1).Select
+    Range("A1").Select
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+
+End Sub
+
+Private Sub TextBox3_AfterUpdate()
+
+    If Not VBA.IsNumeric(Me.TextBox3) Then
+        MsgBox "Numbers are only allowed", vbCritical, "Alert"
+        Me.TextBox3.Value = ""
+        Me.TextBox3.SetFocus
+        Exit Sub
+    End If
+
+End Sub
+
+
+Private Sub UserForm_Initialize()
+     
+    Label15.Caption = VBA.Date
+    Label16.Caption = Now
+     
+    TextBox1.Value = VBA.Environ("username")
+    TextBox1.Locked = True
+     
+    ComboBox1.List = Array("Newcase", "Oldcase")
+    ComboBox3.List = Array("Additional Documentation", "Case Review", "Escalated", "Rejected")
+    ComboBox2.List = Array("Yes", "No")
+    ComboBox5.List = Array("Yes", "No")
+    
+'    Me.Top = Application.Height - Me.Height
+'    Me.Left = Application.Width - Me.Width
+     
+    With ThisWorkbook.Worksheets("Non_Personal_Data")
+        Me.ComboBox4.List = .Range("F2", .Range("F2").End(xlDown)).Value
+        Me.ComboBox6.List = .Range("A2", .Range("A2").End(xlDown)).Value
+        Me.ComboBox10.List = .Range("J2", .Range("J2").End(xlDown)).Value
+    End With
+    
+Me.ComboBox7.Value = "Nil"
+Me.ComboBox8.Value = "Nil"
+Me.ComboBox9.Value = "Nil"
+
+Me.TextBox4.Value = "Nil"
+Me.TextBox6.Value = "Nil"
+Me.TextBox7.Value = "Nil"
+
+Me.TextBox4.Enabled = False
+Me.TextBox6.Enabled = False
+Me.TextBox7.Enabled = False
+     
+End Sub
+
+Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then
+        MsgBox "Sorry you must use Cancel or Exit Button", vbCritical, "Authentication Failed"
+        Cancel = True
+    End If
+End Sub
+Option Explicit
+
+Private Sub CheckBox1_Click()
+
+    Dim i As Long
+    Dim X As Long
+    Dim mySheet As Worksheet
+    Dim y As Long
+    Dim a As Long
+    Dim b As Long
+    Dim lastRow As Long
+    Dim r As Range
+    Dim Escalation()
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+        
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    Me.TextBox9.Value = Hit
+    
+    If Me.CheckBox1.Value = True Then
+    
+        For i = 1 To 16
+            Me.Controls("OptionButton" & i).Enabled = False
+        Next i
+        
+        Me.ComboBox10.Value = ""
+        
+        Me.CommandButton11.Enabled = False
+        
+        Me.MultiPage1.Value = 1
+        
+        Set mySheet = ThisWorkbook.Sheets("Personal_Data")
+        
+        lastRow = mySheet.Range("G50000").End(xlUp).Row
+        
+        For Each r In mySheet.Range("G1:G" & lastRow)
+            If r.Value = Me.ComboBox9.Value Then
+                a = a + 1
+                ReDim Preserve Escalation(1 To a)
+                Escalation(a) = r.Offset(0, 1).Value
+            End If
+        Next r
+        
+        For b = 1 To UBound(Escalation)
+            Me.Controls("Escalation" & b).Caption = Escalation(b)
+            Me.Controls("Escalation" & b).Visible = True
+        Next b
+    
+    Else
+    
+        Me.ComboBox10.Value = ""
+        
+        Me.CommandButton11.Enabled = True
+        
+        Me.MultiPage1.Value = 1
+        
+        For y = 1 To 7
+            Me.Controls("Escalation" & y).Value = False
+            Me.Controls("Escalation" & y).Visible = False
+        Next y
+        
+        Me.MultiPage1.Value = 0
+    
+    End If
+
+End Sub
+
+Private Sub CommandButton11_Click()
+    
+    Dim Var1 As String
+    Dim Var2 As String
+    Dim HitValue As String
+    Dim Hit As String
+    Dim CommaCount As Long
+    Dim i As Long
+    Dim Group1, Group2, Group3, Group4 As Long
+    
+    If Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable" Then
+        i = 0
+    ElseIf Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        i = 0
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable" Then
+        i = 0
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        i = 0
+    ElseIf Me.ComboBox10.Value = "Entity Vs Individual" Then
+        i = 0
+    Else
+        i = 1
+    End If
+    
+    If i = 0 Then Exit Sub
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    Me.TextBox9.Value = Hit
+    
+    If Me.OptionButton9.Value = True Then
+        Group1 = 1
+    End If
+    
+    If Me.OptionButton10.Value = True Then
+        Group1 = 2
+    End If
+    
+    If Me.OptionButton11.Value = True Then
+        Group2 = 1
+    End If
+    
+    If Me.OptionButton12.Value = True Then
+        Group2 = 2
+    End If
+    
+    If Me.OptionButton13.Value = True Then
+        Group3 = 1
+    End If
+    
+    If Me.OptionButton14.Value = True Then
+        Group3 = 2
+    End If
+    
+    If Me.OptionButton15.Value = True Then
+        Group4 = 1
+    End If
+    
+    If Me.OptionButton16.Value = True Then
+        Group4 = 2
+    End If
+    
+    If Me.OptionButton15.Enabled = True And Group4 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    If Me.OptionButton9.Enabled = True And Group1 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    If Me.OptionButton11.Enabled = True And Group2 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    If Me.OptionButton13.Enabled = True And Group3 = 0 Then
+        MsgBox "Invalid Selection", vbCritical, "Alert"
+        Exit Sub
+    End If
+    
+    Var1 = ""
+    Var2 = ""
+        
+    If Me.OptionButton2.Value = True Then Var1 = "Gender" Else Var1 = ""
+        
+    If Me.OptionButton4.Value = True Then
+        If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Name" Else Var1 = "Name"
+    End If
+    
+    If Me.OptionButton6.Value = True Then
+        If Len(Var1) > 1 Then Var1 = Var1 & ", " & "DOB" Else Var1 = "DOB"
+    End If
+    
+    If Me.ComboBox9.Value = "Sanctions" Or Me.ComboBox9.Value = "Adverse Media" Then
+    
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location" Else Var1 = "Location"
+        End If
+    
+    ElseIf Me.ComboBox9.Value = "PEP" Then
+    
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location/Occupation" Else Var1 = "Location/Occupation"
+        End If
+        
+    ElseIf Me.ComboBox9.Value = "RCA" Then
+    
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location" Else Var1 = "Location"
+        End If
+        
+    End If
+    
+    If Me.ComboBox10.Value = "Entity Vs Entity" Then
+        If Me.OptionButton4.Value = True Then Var1 = "Entity name" Else Var1 = ""
+        If Me.OptionButton8.Value = True Then
+            If Len(Var1) > 1 Then Var1 = Var1 & ", " & "Location" Else Var1 = "Location"
+        End If
+    End If
+    
+    If Not Var1 = "" Then
+        
+        For i = 1 To Len(Var1)
+            If Mid(Var1, i, 1) = "," Then
+                CommaCount = CommaCount + 1
+            End If
+        Next i
+        
+        If CommaCount > 0 Then
+            Var1 = Mid(Var1, 1, InStrRev(Var1, ",") - 1) & Replace(Var1, ",", " and", InStrRev(Var1, ",")) & " Mismatches"
+        Else
+            Var1 = Var1 & " Mismatch"
+        End If
+        
+        HitValue = "Discounted due to " & Var1
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+        
+    Else
+        
+        MsgBox "No Hit"
+        
+    End If
+    
+    
+    If Me.ComboBox9.Value = "PEP" Then
+        
+        If Me.OptionButton10.Value = True And Me.OptionButton12.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is not senior enough."
+        ElseIf Me.OptionButton10.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is not senior enough and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is outdated and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is Deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP not under BOI policy - PEP is Outdated."
+        End If
+        
+        If Var1 <> "" And Var2 <> "" Then
+            HitValue = "Discounted due to " & Var1 & " and " & Var2
+            Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+        ElseIf Var1 <> "" And Var2 = "" Then
+            HitValue = "Discounted due to " & Var1
+            Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+        ElseIf Var1 = "" And Var2 <> "" Then
+            HitValue = "Discounted due to " & Var2
+            Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+        ElseIf Var1 = "" And Var2 = "" Then
+            MsgBox "No Hit"
+        End If
+        
+    ElseIf Me.ComboBox9.Value = "RCA" Then
+        
+        If Me.OptionButton16.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is not close enough."
+        ElseIf Me.OptionButton10.Value = True And Me.OptionButton12.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is not senior enough."
+        ElseIf Me.OptionButton10.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is not senior enough and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is outdated and deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton11.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is Deceased."
+        ElseIf Me.OptionButton9.Value = True And Me.OptionButton13.Value = True Then
+            Var2 = "PEP association not under BOI policy - PEP related to RCA is Outdated."
+        End If
+        
+        If Var1 <> "" And Var2 <> "" Then
+            HitValue = "Discounted due to " & Var1 & " and " & Var2
+            Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+        ElseIf Var1 <> "" And Var2 = "" Then
+            HitValue = "Discounted due to " & Var1
+            Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+        ElseIf Var1 = "" And Var2 <> "" Then
+            HitValue = "Discounted due to " & Var2
+            Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & HitValue & vbCr
+        ElseIf Var1 = "" And Var2 = "" Then
+            MsgBox "No Hit"
+        End If
+    
+    End If
+    
+End Sub
+
+Private Sub CommandButton12_Click()
+
+    Dim MyData As New DataObject
+    
+    On Error Resume Next
+    
+    MyData.SetText Sanctions_Level1.TextBox9.Text
+    
+    MyData.PutInClipboard
+
+End Sub
+
+Private Sub CommandButton13_Click()
+
+    Dim y As Long
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+        
+    Me.TextBox9.Value = Hit
+    
+    Me.MultiPage1.Value = 1
+    
+    For y = 1 To 7
+        Me.Controls("Escalation" & y).Value = False
+        Me.Controls("Escalation" & y).Visible = False
+    Next y
+    
+    Me.MultiPage1.Value = 0
+    
+    For y = 1 To 16
+        Me.Controls("Optionbutton" & y).Value = False
+        Me.Controls("OptionButton" & y).Enabled = False
+    Next y
+    
+    Me.ComboBox9.Value = ""
+    Me.ComboBox10.Value = ""
+    Me.CheckBox1.Value = False
+    Me.CheckBox1.Visible = False
+
+End Sub
+
+Private Sub CommandButton6_Click()
+    
+    Dim Hit As String
+    Dim FileLocation As String
+    Dim fso As Object
+    Dim ts As Object
+    Dim FilePath As String
+    Dim y As Long
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+    
+        If Me.ComboBox9.Value = "" Then
+            MsgBox "You haven't selected any category", vbCritical, "Alert"
+            Exit Sub
+        End If
+        
+        If Me.TextBox2.Value > 1 And (Me.HitLabel.Caption = Me.TextBox2.Value - 1) Then
+            Me.CommandButton12.Visible = True
+        End If
+        
+        If Me.HitLabel.Caption = Me.TextBox2.Value Then
+            MsgBox "You have already availed all hits", vbCritical, "Alert"
+            Exit Sub
+        End If
+        
+        If Me.ComboBox10.Value = "Applicable" Or Me.ComboBox10.Value = "Applicable-C/O Person" Then
+            Me.WolfsburgLabel.Caption = Me.WolfsburgLabel.Caption + 1
+        End If
+        
+        Me.MultiPage1.Value = 1
+        
+        For y = 1 To 7
+            Me.Controls("Escalation" & y).Value = False
+            Me.Controls("Escalation" & y).Visible = False
+        Next y
+        
+        Me.MultiPage1.Value = 0
+        
+        For y = 1 To 16
+            Me.Controls("Optionbutton" & y).Value = False
+            Me.Controls("OptionButton" & y).Enabled = False
+        Next y
+        
+        Me.ComboBox10.Value = ""
+        Me.ComboBox9.Value = ""
+        Me.CheckBox1.Visible = False
+        Me.MultiPage1.Value = 0
+        
+        FileLocation = ThisWorkbook.Path & "\Log Files\Sanctions\"
+        
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        
+        'Create Log Files folder if it is not already available
+        
+        If Not fso.FolderExists(FileLocation) = True Then
+            fso.CreateFolder (FileLocation)
+        End If
+        
+        FilePath = FileLocation & LCase(Environ("username")) & ".txt"
+        
+        'Create backup file if it is not already available
+        
+        If Not fso.FileExists(FilePath) = True Then
+            Set ts = fso.CreateTextFile(FilePath)
+            ts.Write "welcome" & vbNewLine
+        Else
+            Set ts = fso.OpenTextFile(FilePath, 8)
+        End If
+        
+        If HitLabel.Caption = 1 Then
+            ts.Write Me.TextBox9.Value
+        Else
+            ts.Write Right(Me.TextBox9.Value, Len(Me.TextBox9.Value) - InStrRev(Me.TextBox9.Value, "Hit") + 1)
+        End If
+        
+        ts.Close
+        
+        Set ts = Nothing
+        Set fso = Nothing
+        
+        If Not Me.HitLabel.Caption = "Hit" Then
+            Me.HitLabel.Caption = Me.HitLabel.Caption + 1
+            Me.Countlabel.Caption = Me.HitLabel.Caption
+        End If
+        
+        If Me.HitLabel.Caption Mod 100 = 0 Then
+            Hit = Left(Me.TextBox9.Value, InStr(1, Me.TextBox9.Value, "Hit") - 1)
+            Me.TextBox9.Value = Hit
+        End If
+    
+    Else
+    
+        MsgBox "You haven't used any hit", vbCritical, "Alert"
+    
+    End If
+
+End Sub
+
+Private Sub CommandButton7_Click()
+
+    Dim y As Long
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    Me.MultiPage1.Value = 1
+    
+    For y = 1 To 7
+        Me.Controls("Escalation" & y).Value = False
+    Next y
+    
+    Me.TextBox9.Value = Hit
+
+End Sub
+
+Private Sub CommandButton8_Click()
+
+    Me.MultiPage1.Value = 0
+
+End Sub
+
+Private Sub Escalation1_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation1.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation1.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation2_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation2.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation2.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation3_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation3.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation3.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation4_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation4.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation4.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation5_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation5.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation5.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation6_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation6.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation6.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub Escalation7_AfterUpdate()
+
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.Escalation7.Value = True Then
+        Me.TextBox9.Value = Hit & "Hit" & " " & Me.HitLabel.Caption & ": " & Me.Escalation7.Caption & vbCr
+    End If
+
+End Sub
+
+Private Sub MultiPage1_Change()
+
+End Sub
+
+Private Sub OptionButton15_AfterUpdate()
+    
+   Dim i As Long
+   
+   For i = 9 To 12
+        If Me.OptionButton15.Value = True Then
+            Me.Controls("OptionButton" & i).Value = False
+            Me.Controls("OptionButton" & i).Enabled = True
+        End If
+   Next i
+   
+End Sub
+
+Private Sub OptionButton16_AfterUpdate()
+   
+   Dim i As Long
+   
+   For i = 9 To 14
+        If Me.OptionButton16.Value = True Then
+            Me.Controls("OptionButton" & i).Value = False
+            Me.Controls("OptionButton" & i).Enabled = False
+        End If
+   Next i
+   
+End Sub
+
+
+Private Sub OptionButton5_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Sanctions" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton6_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Sanctions" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton7_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Adverse Media" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton8_AfterUpdate()
+
+    If Me.ComboBox9.Value = "Adverse Media" Then
+        Me.CheckBox1.Visible = True
+    End If
+
+End Sub
+
+Private Sub OptionButton9_AfterUpdate()
+    
+    If OptionButton9.Value = True Then
+        OptionButton13.Enabled = True
+        OptionButton14.Enabled = True
+    Else
+        OptionButton13.Value = False
+        OptionButton14.Value = False
+        OptionButton13.Enabled = False
+        OptionButton14.Enabled = False
+    End If
+    
+End Sub
+
+Private Sub OptionButton10_AfterUpdate()
+    
+    If OptionButton10.Value = True Then
+        OptionButton13.Value = False
+        OptionButton14.Value = False
+        OptionButton13.Enabled = False
+        OptionButton14.Enabled = False
+    Else
+        OptionButton13.Enabled = True
+        OptionButton14.Enabled = True
+    End If
+    
+End Sub
+
+Private Sub ComboBox10_AfterUpdate()
+
+    Dim Hit As String
+    Dim i As Long
+    
+    For i = 1 To 16
+        Me.Controls("Optionbutton" & i).Value = False
+        Me.Controls("OptionButton" & i).Enabled = False
+    Next i
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+    
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+    
+    If Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Discounted due to Insufficient unique identifying PEP details provided by the list provider in the alert details to facilitate effective PEP screening" & vbCr
+    ElseIf Me.ComboBox9.Value = "PEP" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Match to C/O Person-Discounted due to Insufficient unique identifying PEP details provided by the list provider in the alert details to facilitate effective PEP screening" & vbCr
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Alert being discounted under standard BOI RCA policy; no DOB exists on lexis nexis list information" & vbCr
+    ElseIf Me.ComboBox9.Value = "RCA" And Me.ComboBox10.Value = "Applicable-C/O Person" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Match to C/O Person-Alert being discounted under standard BOI RCA policy; no DOB exists on lexis nexis list information" & vbCr
+    ElseIf Me.ComboBox10.Value = "Entity Vs Individual" Then
+        Me.TextBox9.Value = Hit & "Hit " & Me.HitLabel.Caption & ": Discounted due to Name, DOB and Entity type mismatch" & vbCr
+    Else
+        Me.TextBox9.Value = Hit
+    End If
+    
+    If Me.ComboBox10.Value = "Entity Vs Entity" Then
+        Me.OptionButton3.Enabled = True
+        Me.OptionButton4.Enabled = True
+        Me.OptionButton7.Enabled = True
+        Me.OptionButton8.Enabled = True
+    ElseIf Me.ComboBox10.Value = "Individual" Then
+        For i = 1 To 6
+            Me.Controls("OptionButton" & i).Enabled = True
+        Next i
+    Else
+        For i = 1 To 16
+            Me.Controls("Optionbutton" & i).Value = False
+            Me.Controls("OptionButton" & i).Enabled = False
+        Next i
+    End If
+
+End Sub
+
+Private Sub ComboBox9_AfterUpdate()
+
+    Dim ReviewID As String
+    Dim y As Long
+    Dim i As Long
+    Dim Hit As String
+    
+    Hit = "Hit " & Me.HitLabel.Caption
+
+    If InStrRev(Me.TextBox9.Value, Hit) > 0 Then
+        Hit = Left(Me.TextBox9.Value, InStrRev(Me.TextBox9.Value, Hit) - 1)
+    Else
+        Hit = Me.TextBox9.Value
+    End If
+        
+    Me.TextBox9.Value = Hit
+    
+    Me.MultiPage1.Value = 1
+    
+    For y = 1 To 7
+        Me.Controls("Escalation" & y).Value = False
+        Me.Controls("Escalation" & y).Visible = False
+    Next y
+    
+    Me.MultiPage1.Value = 0
+    
+    For y = 1 To 16
+        Me.Controls("Optionbutton" & y).Value = False
+        Me.Controls("OptionButton" & y).Enabled = False
+    Next y
+    
+    Me.ComboBox10.Value = ""
+    Me.CheckBox1.Value = False
+    Me.CheckBox1.Visible = True
+    
+    If Me.ComboBox9.Value = "Business PEP" Then
+        Me.ComboBox10.Enabled = False
+    End If
+        
+'    If Me.ComboBox9.Value = "Sanctions" Then
+'        Me.ComboBox10.Enabled = False
+'        For i = 1 To 6
+'            Me.Controls("OptionButton" & i).Enabled = True
+'        Next i
+'    End If
+    
+    If InStr(1, Me.TextBox9.Value, "Hit") > 0 Then
+    Else
+        'Me.TextBox9.Value = "Review ID: " & Me.TextBox1.Value & vbCr & "Product: " & vbCr
+        Me.HitLabel.Caption = 1
+    End If
+
+End Sub
+
+Private Sub CommandButton1_Click()
+
+Dim mybook As Workbook
+Dim StartDate As Date
+Dim EndDate As Date
+Dim Duration As Date
+Dim obj As Object
+Dim i As Integer
+Dim a, b, c, d, e As Integer
+Dim FileLocation As String
+Dim fso As Object
+Dim ts As Object
+Dim FilePath As String
+
+Application.ScreenUpdating = False
+
+For i = 1 To 5
+    If Controls("Textbox" & i).Value = "" Or VBA.IsNumeric(Controls("Textbox" & i)) = False Then
+    MsgBox "Your input information is wrong or not entered", vbCritical, "You're missing something!"
+    Controls("Textbox" & i).Value = ""
+    Controls("Textbox" & i).SetFocus
+    Exit Sub
+    End If
+Next i
+
+If Me.TextBox2.Value = 0 Then
+    MsgBox "Invalid Entry", vbCritical, "Alert!!!"
+    Me.TextBox2.Value = ""
+    Me.TextBox2.SetFocus
+    Exit Sub
+End If
+
+a = CInt(Me.TextBox2.Value)
+b = CInt(Me.TextBox3.Value)
+c = CInt(Me.TextBox4.Value)
+d = CInt(Me.TextBox5.Value)
+e = b + c + d
+
+If Not a = e Then
+    MsgBox "Hit count entered is invalid", vbCritical, "Incorrect entry"
+    Exit Sub
+End If
+    
+If InStrRev(Me.TextBox9.Value, "Hit") > 0 Then
+    i = InStrRev(Me.TextBox9.Value, "Hit") + 4
+    a = InStrRev(Me.TextBox9.Value, ":")
+    b = Mid(Me.TextBox9.Value, i, a - i)
+    If Not Me.TextBox2.Value = b Then
+        MsgBox "Hit count is missed", vbCritical, "Alert"
+        Exit Sub
+    End If
+Else
+    MsgBox "Hit count is missed", vbCritical, "Alert"
+    Exit Sub
+End If
+
+StartDate = Me.Label7.Caption
+EndDate = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+
+Duration = EndDate - StartDate
+
+ Set mybook = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+ 
+ Sheets("Batch_Level1").Select
+ 
+ Range("A50000").End(xlUp)(2).Select
+ 
+ ActiveCell.Value = VBA.Date
+ ActiveCell.Offset(0, 1).Value = VBA.Environ("username")
+ ActiveCell.Offset(0, 2).Value = "Sanctions"
+ ActiveCell.Offset(0, 3).Value = Me.TextBox1.Value
+ ActiveCell.Offset(0, 4).Value = Me.TextBox2.Value
+ ActiveCell.Offset(0, 5).Value = Me.TextBox3.Value
+ ActiveCell.Offset(0, 6).Value = Me.TextBox4.Value
+ ActiveCell.Offset(0, 7).Value = Me.TextBox5.Value
+ ActiveCell.Offset(0, 8).Value = StartDate
+ ActiveCell.Offset(0, 9).Value = EndDate
+ 
+ mybook.Save
+ 
+ mybook.Close False
+ 
+    FileLocation = ThisWorkbook.Path & "\Log Files\Sanctions\"
+        
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    'Create Log Files folder if it is not already available
+    
+    If Not fso.FolderExists(FileLocation) = True Then
+        fso.CreateFolder (FileLocation)
+    End If
+    
+    FilePath = FileLocation & LCase(Environ("username")) & ".txt"
+    
+    'Create backup file if it is not already available
+    
+    If Not fso.FileExists(FilePath) = True Then
+        Set ts = fso.CreateTextFile(FilePath)
+        ts.Write "welcome" & vbNewLine
+    Else
+        Set ts = fso.OpenTextFile(FilePath, 8)
+    End If
+    
+        If HitLabel = 1 Then
+            ts.Write Me.TextBox9.Value
+        Else
+            ts.Write Right(Me.TextBox9.Value, Len(Me.TextBox9.Value) - InStrRev(Me.TextBox9.Value, "Hit") + 1)
+        End If
+    
+    ts.Close
+    
+    Set ts = Nothing
+    Set fso = Nothing
+
+ 
+ MsgBox "Your AHT for this alert is " & VBA.Format(Duration, "hh:mm:ss"), vbInformation, "Record Saved"
+ 
+ Me.TextBox1.Value = ""
+ Me.TextBox2.Value = ""
+ Me.TextBox3.Value = ""
+ Me.TextBox4.Value = ""
+ Me.TextBox5.Value = ""
+ 
+ Me.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+ 
+ Me.Label14.Caption = Me.Label14.Caption + 1
+ 
+    Me.MultiPage1.Value = 1
+
+    For i = 1 To 7
+        Me.Controls("Escalation" & i).Visible = False
+    Next
+    
+    Me.MultiPage1.Value = 0
+    
+    Me.CheckBox1.Value = False
+    Me.CheckBox1.Visible = False
+    
+    For i = 1 To 16
+        Me.Controls("OptionButton" & i).Enabled = False
+    Next i
+    
+    Me.TextBox9.Value = ""
+    
+    Me.ComboBox9.Value = ""
+    Me.ComboBox10.Value = ""
+   
+    Me.Countlabel.Caption = 1
+    Me.HitLabel.Caption = "Hit"
+    
+    Me.MultiPage1.Value = 0
+    
+    Me.TextBox1.SetFocus
+    'Unload Me
+    'Batch_Page.Show vbModeless
+
+End Sub
+
+Private Sub CommandButton2_Click()
+
+Dim myMsg As VbMsgBoxResult
+
+myMsg = MsgBox("Do you want to close this app?", vbQuestion + vbYesNo, "Confirmation")
+
+If myMsg = vbYes Then
+
+    Unload Me
+    
+    Main_Page.Show vbModeless
+    
+    Main_Page.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    
+End If
+
+End Sub
+
+Private Sub CommandButton5_Click()
+
+Me.Hide
+
+Others_Page.Show vbModeless
+
+Others_Page.Caption = "Sanctions_Level1"
+
+End Sub
+
+
+Private Sub CommandButton9_Click()
+    
+    Dim FilePath As String
+    Dim fso As Object
+    Dim sfile As String
+    Dim MyData As New DataObject
+    Dim MyAppID
+    
+    If Me.HitLabel.Caption > 100 Then
+    
+    FilePath = ThisWorkbook.Path & "\Log Files\Sanctions\" & LCase(Environ("username")) & ".txt"
+    CreateObject("Shell.Application").Open (FilePath)
+
+    Else
+    
+    MyData.SetText Sanctions_Level1.TextBox9.Text
+    MyAppID = Shell("NOTEPAD.EXE", 1)
+    
+    AppActivate MyAppID
+    MyData.PutInClipboard
+    
+    SendKeys "^V", True
+    
+    End If
+
+End Sub
+
+Private Sub TextBox1_AfterUpdate()
+
+    If Len(Me.TextBox1.Value) = 10 Or Me.TextBox1.Value = "" Then
+    Else
+        MsgBox "Invalid entry", vbCritical, "Alert!!!"
+        Me.TextBox1.Value = ""
+        Me.TextBox1.SetFocus
+        Exit Sub
+    End If
+
+End Sub
+
+Private Sub TextBox2_AfterUpdate()
+
+    If Me.TextBox2.Value = 1 Then
+        Me.CommandButton12.Visible = True
+        Me.Countlabel.Caption = Me.TextBox2.Value
+    Else
+        Me.CommandButton12.Visible = False
+    End If
+
+End Sub
+
+Private Sub UserForm_Initialize()
+
+    Dim wk As Workbook
+    Dim Level1 As Long
+    Dim Level2 As Long
+    Dim i As Long
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    Me.MultiPage1.Value = 0
+    
+    For i = 1 To 16
+        Me.Controls("OptionButton" & i).Enabled = False
+    Next i
+    
+    Me.MultiPage1.Value = 1
+    
+    For i = 1 To 7
+        Me.Controls("Escalation" & i).Visible = False
+    Next
+    
+    Me.MultiPage1.Value = 0
+    
+    On Error GoTo myError
+    Set wk = Workbooks.Open(ThisWorkbook.Path & "\Do not Open\" & VBA.Environ("username") & ".xlsx")
+    On Error GoTo 0
+    
+    wk.Activate
+    
+    Sheets("Batch_Level1").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level1 = ActiveCell.Value
+    
+    Sheets("Batch_Level2").Select
+    
+    Range("Z1").Select
+    
+    ActiveCell.FormulaR1C1 = "=COUNTIF(C[-25],TODAY())"
+    
+    Level2 = ActiveCell.Value
+    
+    wk.Close False
+    
+    Me.Label7.Caption = VBA.Format(Now, "dd/mm/yyyy hh:mm:ss")
+    Me.Label14.Caption = Level1
+    
+    Me.ComboBox9.List = Array("Sanctions", "Business PEP")
+
+    Me.ComboBox10.List = Array("Individual", "Entity Vs Entity", "Entity Vs Individual")
+
+    Me.HitLabel.Visible = False
+
+    Me.WolfsburgLabel.Caption = 0
+
+    Me.WolfsburgLabel.Visible = False
+
+    Me.CheckBox1.Visible = False
+
+    Me.CommandButton12.Visible = False
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    Exit Sub
+    
+myError:
+    MsgBox "System is not getting update; Please try again", vbCritical, "Alert"
+    Main_Page.Show vbModeless
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+
+End Sub
+
+Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
+
+If CloseMode = vbFormControlMenu Then
+    Cancel = True
+    MsgBox "Please use the Exit button!", vbCritical, "Alert!!!"
+End If
+
+End Sub
+
